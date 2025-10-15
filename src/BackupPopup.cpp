@@ -49,7 +49,41 @@ bool BackupPopup::setup()
     sizeLabel->setScale(0.5f);
     m_mainLayer->addChild(sizeLabel);
 
-    // Request account size from server using saved argonToken
+    // last saved label
+    auto lastSavedLabel = CCLabelBMFont::create("Last Saved: ...", "chatFont.fnt");
+    lastSavedLabel->setAlignment(kCCTextAlignmentCenter);
+    lastSavedLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 90});
+    lastSavedLabel->setScale(0.45f);
+    m_mainLayer->addChild(lastSavedLabel);
+    {
+        std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
+        matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+        std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
+        auto req = geode::utils::web::WebRequest()
+            .timeout(std::chrono::seconds(10))
+            .header("Content-Type", "application/json")
+            .bodyJSON(body)
+            .post(backupUrl + "/lastsaved");
+        static geode::EventListener<geode::utils::web::WebTask> lastSavedListener;
+        lastSavedListener.bind([lastSavedLabel](geode::utils::web::WebTask::Event *e) {
+            if (auto *resp = e->getValue()) {
+                if (resp->ok()) {
+                    auto strResult = resp->string();
+                    if (strResult) {
+                        lastSavedLabel->setString(fmt::format("Last Saved: {}", strResult.unwrap()).c_str());
+                    } else {
+                        lastSavedLabel->setString("Last Saved: N/A");
+                    }
+                } else {
+                    lastSavedLabel->setString("Last Saved: N/A");
+                }
+            } else {
+                lastSavedLabel->setString("Last Saved: ...");
+            }
+        });
+        lastSavedListener.setFilter(std::move(req));
+    }
+
     std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
     matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
     std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
@@ -70,7 +104,7 @@ bool BackupPopup::setup()
                     double sizeBytes = std::strtod(str.c_str(), &endptr); // byte into megabytes
                     if (endptr != str.c_str() && *endptr == '\0') {
                         double sizeMB = sizeBytes / (1024.0 * 1024.0);
-                        sizeLabel->setString(fmt::format("Account size: {:.2f} MB", sizeMB).c_str());
+                        sizeLabel->setString(fmt::format("Compressed Save data size: {:.2f} MB", sizeMB).c_str());
                     } else {
                         sizeLabel->setString("Compressed Save data size: N/A");
                     }
@@ -81,7 +115,7 @@ bool BackupPopup::setup()
                 sizeLabel->setString("Compressed Save data size: N/A");
             }
         } else {
-            sizeLabel->setString("Compressed Save data size: Error");
+            sizeLabel->setString("Compressed Save data size: ...");
         } });
     sizeListener.setFilter(std::move(req));
 
@@ -190,7 +224,7 @@ void BackupPopup::onLoad(CCObject *)
                         if (auto gm = GameManager::sharedState()) {
                             auto result = resp->string();
                             if (result) {
-                                // gm->loadFromCompressedString(result.unwrap()); // not in binding yet :(
+                                gm->loadFromCompressedString(result.unwrap());
                                 Notification::create("Backup loaded successfully!", NotificationIcon::Success)->show();
                             } else {
                                 Notification::create("Failed to get backup data from response", NotificationIcon::Error)->show();

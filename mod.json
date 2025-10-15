@@ -21,7 +21,7 @@
 			"type": "string",
 			"name": "Backup Server URL",
 			"description": "The URL to which the backup will be sent. <cr>Don't change this unless you know what you are doing!</c> <cy>Refer to the mod page for more information on setting up your own server.</c>",
-			"default": "https://gd.arcticwoof.xyz/",
+			"default": "https://gdbackup.arcticwoof.xyz/",
 			"match": "(http|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])",
 			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
 		}
