@@ -1,0 +1,29 @@
+{
+	"geode": "4.8.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "arcticwoof.alternativebackup",
+	"name": "Alternative Backup",
+	"version": "v1.0.0",
+	"developer": "ArcticWoof",
+	"description": "Alternative account save option",
+	"resources": {
+		"sprites": [
+			"resources/*"
+		]
+	},
+	"settings": {
+		"backup-url": {
+			"type": "string",
+			"name": "Backup URL",
+			"description": "The URL to which the backup will be sent.",
+			"default": "https://gd.arcticwoof.xyz/backup",
+			"match": "(http|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])",
+			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
+		}
+	}
+}
