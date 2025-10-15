@@ -241,10 +241,8 @@ void BackupPopup::onSave(CCObject *)
                         Notification::create("Backup saved successfully!", NotificationIcon::Success)->show();
                         if (statusLabel)
                             statusLabel->setString("Status: Save successful");
-                        // Update size and last saved labels
-                        if (this) {
-                            if constexpr (std::is_member_object_pointer_v<decltype(&BackupPopup::sizeLabel)>) {
-                                if (sizeLabel && lastSavedLabel) {
+                        if constexpr (std::is_member_object_pointer_v<decltype(&BackupPopup::sizeLabel)>) {
+                            if (sizeLabel && lastSavedLabel) {
                                     int accountId = 0;
                                     if (auto acct = GJAccountManager::get()) {
                                         accountId = acct->m_accountID;
@@ -252,7 +250,6 @@ void BackupPopup::onSave(CCObject *)
                                     std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
                                     matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
                                     std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
-                                    // Update size
                                     auto reqSize = geode::utils::web::WebRequest()
                                         .timeout(std::chrono::seconds(30))
                                         .header("Content-Type", "application/json")
@@ -284,7 +281,6 @@ void BackupPopup::onSave(CCObject *)
                                         }
                                     });
                                     sizeListener.setFilter(std::move(reqSize));
-                                    // Update last saved
                                     auto reqLast = geode::utils::web::WebRequest()
                                         .timeout(std::chrono::seconds(30))
                                         .header("Content-Type", "application/json")
@@ -308,7 +304,6 @@ void BackupPopup::onSave(CCObject *)
                                         }
                                     });
                                     lastSavedListener.setFilter(std::move(reqLast));
-                                }
                             }
                         }
                     } else {
@@ -381,7 +376,8 @@ void BackupPopup::onLoad(CCObject *)
                         if (auto gm = GameManager::sharedState()) {
                             auto result = resp->string();
                             if (result) {
-                                gm->loadFromCompressedString(result.unwrap());
+                                gd::string saveStr = result.unwrap();
+                                gm->loadFromCompressedString(saveStr);
                                 Notification::create("Backup loaded successfully!", NotificationIcon::Success)->show();
                                 if (statusLabel)
                                     statusLabel->setString("Status: Load successful");
@@ -440,9 +436,8 @@ void BackupPopup::onDelete(CCObject *)
                         if (statusLabel)
                             statusLabel->setString("Status: Delete successful");
                         // Update size and last saved labels
-                        if (this) {
-                            if constexpr (std::is_member_object_pointer_v<decltype(&BackupPopup::sizeLabel)>) {
-                                if (sizeLabel && lastSavedLabel) {
+                        if constexpr (std::is_member_object_pointer_v<decltype(&BackupPopup::sizeLabel)>) {
+                            if (sizeLabel && lastSavedLabel) {
                                     int accountId = 0;
                                     if (auto acct = GJAccountManager::get()) {
                                         accountId = acct->m_accountID;
@@ -506,7 +501,6 @@ void BackupPopup::onDelete(CCObject *)
                                         }
                                     });
                                     lastSavedListener.setFilter(std::move(reqLast));
-                                }
                             }
                         }
                     } else {
