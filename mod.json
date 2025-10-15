@@ -26,5 +26,10 @@
 			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
 		}
 	},
-	"tags": ["online", "enhancement","utility"]
+	"tags": ["online", "enhancement","utility"],
+		"links": {
+		"source": "https://github.com/DumbCaveSpider/GDAccountBackup",
+		"community": "https://discord.gg/gXcppxTNxC",
+		"homepage": "https://arcticwoof.com.au"
+	}
 }
