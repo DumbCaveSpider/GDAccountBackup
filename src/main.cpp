@@ -48,62 +48,64 @@ class $modify(MyAccountLayer, AccountLayer)
                 return;
             }
         }
-        static EventListener<WebTask> listener;
-        listener.bind([](WebTask::Event *e)
-                      {
-            if (WebResponse* resp = e->getValue()) {
-                if (resp->ok()) {
-                    auto jsonResult = resp->json();
-                    if (!jsonResult) {
-                        log::warn("Failed to parse JSON: {}", jsonResult.unwrapErr());
-                        return;
-                    }
-                    auto json = jsonResult.unwrap();
-                    bool valid = false;
-                    if (json.isObject() && json.contains("valid")) {
-                        valid = json["valid"].asBool().unwrapOr(false);
-                    }
-                    log::info("Validation response: {}", valid);
-                    if (valid) {
-                        // open the backup
-                        auto popup = BackupPopup::create();
-                        if (popup) popup->show();
-                    }
-                } else {
-                    log::info("Validation request failed with status: {}", resp->code());
-                    Notification::create(fmt::format("Validation request failed with status: {}", resp->code()), NotificationIcon::Error)->show();
-                    return;
-                }
-            } else if (e->isCancelled()) {
-                log::warn("Validation request was cancelled");
-                Notification::create("Validation request was cancelled", NotificationIcon::Error)->show();
-                return;
-            } });
 
-        // start argon auth to get an auth token
-        auto res = argon::startAuth(argon::AuthCallback([](Result<std::string> result)
-                                                        {
+        // get the authentication token
+        auto res = argon::startAuth([](Result<std::string> result)
+        {
             if (!result) {
                 log::warn("Argon authentication failed: {}", result.unwrapErr());
+                Notification::create("Authentication failed", NotificationIcon::Error)->show();
                 return;
             }
+
             auto token = std::move(result).unwrap();
-            log::info("Argon authentication succeeded, token: {}", token);
+            log::info("Argon authentication succeeded, token received");
             Mod::get()->setSavedValue("argonToken", token);
 
-            // get the current account id (GJAccountManager provides this)
+            // get account id
             int accountId = 0;
             if (auto acct = GJAccountManager::get()) {
                 accountId = acct->m_accountID;
             }
 
-            std::string url = std::string("https://argon.globed.dev/v1/validation/check?account_id=") +
-                std::to_string(accountId) + "&authtoken=" + token;
+            // Now validate with /auth endpoint
+            static EventListener<WebTask> authListener;
+            authListener.bind([](WebTask::Event *e)
+            {
+                if (WebResponse* resp = e->getValue()) {
+                    if (resp->ok()) {
+                        log::info("Authentication successful");
+                        // open the backup popup
+                        auto popup = BackupPopup::create();
+                        if (popup) popup->show();
+                    } else {
+                        log::info("Authentication failed with status: {}", resp->code());
+                        Notification::create(fmt::format("Authentication failed with status: {}", resp->code()), NotificationIcon::Error)->show();
+                    }
+                } else if (e->isCancelled()) {
+                    log::warn("Authentication request was cancelled");
+                    Notification::create("Authentication request was cancelled", NotificationIcon::Error)->show();
+                }
+            });
 
-            auto req = WebRequest()
+            matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+            std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
+
+            auto authReq = WebRequest()
                 .timeout(std::chrono::seconds(10))
-                .get(url);
+                .header("Content-Type", "application/json")
+                .bodyJSON(body)
+                .post(backupUrl + "/auth");
 
-            listener.setFilter(std::move(req)); }));
+            authListener.setFilter(std::move(authReq));
+        }, [](argon::AuthProgress progress) {
+            // Log authentication progress
+            log::info("Auth progress: {}", argon::authProgressToString(progress));
+        });
+
+        if (!res) {
+            log::warn("Failed to start auth attempt: {}", res.unwrapErr());
+            Notification::create("Failed to start authentication", NotificationIcon::Error)->show();
+        }
     }
 };
