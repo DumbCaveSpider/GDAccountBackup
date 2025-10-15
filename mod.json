@@ -6,11 +6,11 @@
 		"mac": "2.2074",
 		"ios": "2.2074"
 	},
-	"id": "arcticwoof.alternativebackup",
-	"name": "Alternative Backup",
+	"id": "arcticwoof.account_backup",
+	"name": "Account Backup",
 	"version": "v1.0.0",
 	"developer": "ArcticWoof",
-	"description": "Alternative account save option",
+	"description": "Alternative account cloud backup option",
 	"resources": {
 		"sprites": [
 			"resources/*"
@@ -19,9 +19,9 @@
 	"settings": {
 		"backup-url": {
 			"type": "string",
-			"name": "Backup URL",
-			"description": "The URL to which the backup will be sent.",
-			"default": "https://gd.arcticwoof.xyz/backup",
+			"name": "Backup Server URL",
+			"description": "The URL to which the backup will be sent. <cr>Don't change this unless you know what you are doing!</c> <cy>Refer to the mod page for more information on setting up your own server.</c>",
+			"default": "https://gd.arcticwoof.xyz/",
 			"match": "(http|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])",
 			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
 		}

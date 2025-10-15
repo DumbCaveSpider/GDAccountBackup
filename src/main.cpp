@@ -38,6 +38,16 @@ class $modify(MyAccountLayer, AccountLayer)
 
     void getValidation(CCObject *sender)
     {
+        // if the accountId = -1 or 0, the user is not logged in
+        if (auto acct = GJAccountManager::get())
+        {
+            if (acct->m_accountID == -1 || acct->m_accountID == 0)
+            {
+                log::info("User is not logged in, cannot open backup popup");
+                Notification::create("You must be logged in into your account!", NotificationIcon::Error)->show();
+                return;
+            }
+        }
         static EventListener<WebTask> listener;
         listener.bind([](WebTask::Event *e)
                       {
@@ -79,22 +89,13 @@ class $modify(MyAccountLayer, AccountLayer)
             }
             auto token = std::move(result).unwrap();
             log::info("Argon authentication succeeded, token: {}", token);
-
-            // fetch compressed save string after auth succeeded
-            if (auto gm = GameManager::sharedState()) {
-                auto save = gm->getCompressedSaveString(); // get the compressed save string
-                clipboard::write(save);
-                log::debug("Compressed save string fetched");
-            } else {
-                log::debug("GameManager::sharedState() returned null");
-            }
+            Mod::get()->setSavedValue("argonToken", token);
 
             // get the current account id (GJAccountManager provides this)
             int accountId = 0;
             if (auto acct = GJAccountManager::get()) {
                 accountId = acct->m_accountID;
             }
-
 
             std::string url = std::string("https://argon.globed.dev/v1/validation/check?account_id=") +
                 std::to_string(accountId) + "&authtoken=" + token;
