@@ -5,15 +5,21 @@
 
 using namespace geode::prelude;
 
-class BackupPopup : public Popup<> {
-    public:
-    static BackupPopup* create();
+class BackupPopup : public Popup<>
+{
+public:
+    static BackupPopup *create();
 
-    protected:
+protected:
     bool setup() override;
 
-    private:
-    void onSave(CCObject*);
-    void onLoad(CCObject*);
-    void onDelete(CCObject*);
+private:
+    void onSave(CCObject *);
+    void onLoad(CCObject *);
+    void onDelete(CCObject *);
+    void onModSettings(CCObject *);
+
+    CCLabelBMFont *sizeLabel = nullptr;
+    CCLabelBMFont *lastSavedLabel = nullptr;
+    CCLabelBMFont *statusLabel = nullptr;
 };

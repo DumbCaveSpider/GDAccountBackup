@@ -22,13 +22,13 @@ class $modify(MyAccountLayer, AccountLayer)
 
         // button to open the popup
         // @geode-ignore(unknown-resource)
-        auto sprite = CCSprite::create("save.png"_spr);
-        sprite->setScale(0.7f);
+        auto sprite = CCSprite::create("saveIcon.png"_spr);
         auto buttonSprite = CircleButtonSprite::create(sprite, geode::CircleBaseColor::DarkPurple);
         auto button = CCMenuItemSpriteExtra::create(
             buttonSprite,
             this,
             menu_selector(MyAccountLayer::getValidation));
+        sprite->setScale(0.5f);
         button->setPosition({menu->getContentSize().width / 2, 25});
 
         menu->addChild(button);
