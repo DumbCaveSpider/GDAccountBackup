@@ -43,9 +43,8 @@ class $modify(MyAccountLayer, AccountLayer)
         {
             button->setEnabled(false);
             button->setOpacity(0);
-            auto spinner = LoadingSpinner::create(50.f);
-            spinner->setPosition(button->getPosition());
-            spinner->setAnchorPoint({0.f, 0.5f});
+            auto spinner = LoadingSpinner::create(45.f);
+            spinner->setAnchorPoint({0.f, 0.f});
             spinner->setTag(1000);
             button->addChild(spinner);
         }
