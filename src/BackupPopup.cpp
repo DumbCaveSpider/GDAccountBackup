@@ -191,7 +191,7 @@ bool BackupPopup::setup()
     float bottomY = startY - (numButtons - 1) * verticalSpacing - 10; // relative to menu center
     statusLabel = CCLabelBMFont::create("Status: Idle", "bigFont.fnt");
     statusLabel->setPosition({centerX, centerY + bottomY - verticalSpacing});
-    statusLabel->setScale(0.5f);
+    statusLabel->setScale(0.3f);
     m_mainLayer->addChild(statusLabel, 2);
 
     // mod settings button in the top right corner
@@ -496,7 +496,7 @@ void BackupPopup::onLoad(CCObject *sender)
             this->disableButton(sender);
 
             if (statusLabel)
-                statusLabel->setString("Status: Loading account data...");
+                statusLabel->setString("Status: Downloading account data...");
             std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
             int accountId = 0;
             if (auto acct = GJAccountManager::get())
@@ -618,7 +618,7 @@ void BackupPopup::onDelete(CCObject *sender)
                                                         double saveMB = saveBytes / (1024.0 * 1024.0);
                                                         double levelMB = levelBytes / (1024.0 * 1024.0);
                                                         sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
-                                                        levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                                                        levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                                                     } else {
                                                         sizeLabel->setString("Save data size: N/A");
                                                         levelDataSizeLabel->setString("Level data size: N/A");
@@ -693,7 +693,7 @@ void BackupPopup::onLoadLocalLevels(CCObject *sender)
             this->disableButton(sender);
 
             if (statusLabel)
-                statusLabel->setString("Status: Loading local levels...");
+                statusLabel->setString("Status: Downloading local levels...");
             std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
             int accountId = 0;
             if (auto acct = GJAccountManager::get())
