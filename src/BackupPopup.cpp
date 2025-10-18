@@ -134,22 +134,22 @@ bool BackupPopup::setup()
                                 levelBytes = l.unwrap();
                             double saveMB = saveBytes / (1024.0 * 1024.0);
                             double levelMB = levelBytes / (1024.0 * 1024.0);
-                            sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                            sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
                             levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                         } else {
-                            sizeLabel->setString("Save data size: N/A");
+                            sizeLabel->setString("Account Save data size: N/A");
                             levelDataSizeLabel->setString("Level data size: N/A");
                         }
                     } else {
-                        sizeLabel->setString("Save data size: N/A");
+                        sizeLabel->setString("Account Save data size: N/A");
                         levelDataSizeLabel->setString("Level data size: N/A");
                     }
                 } else {
-                    sizeLabel->setString("Save data size: N/A");
+                    sizeLabel->setString("Account Save data size: N/A");
                     levelDataSizeLabel->setString("Level data size: N/A");
                 }
             } else {
-                sizeLabel->setString("Save data size: ...");
+                sizeLabel->setString("Account Save data size: ...");
                 levelDataSizeLabel->setString("Level data size: ...");
             } });
         sizeListener.setFilter(std::move(req));
@@ -233,7 +233,7 @@ void BackupPopup::onSave(CCObject *sender)
 {
     geode::createQuickPopup(
         "Save Data",
-        "Do you want to <cg>save</c> your account data to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
+        "Do you want to <cg>save</c> your account data and local level data to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
         "Cancel", "Save",
     [this, sender](FLAlertLayer *, bool confirmed)
         {
@@ -315,22 +315,22 @@ void BackupPopup::onSave(CCObject *sender)
                                                             if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
                                                             double saveMB = saveBytes / (1024.0 * 1024.0);
                                                             double levelMB = levelBytes / (1024.0 * 1024.0);
-                                                            sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                            sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
                                                             levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                                                         } else {
-                                                            sizeLabel->setString("Save data size: N/A");
+                                                            sizeLabel->setString("Account Save data size: N/A");
                                                             levelDataSizeLabel->setString("Level data size: N/A");
                                                         }
                                                     } else {
-                                                        sizeLabel->setString("Save data size: N/A");
+                                                        sizeLabel->setString("Account Save data size: N/A");
                                                         levelDataSizeLabel->setString("Level data size: N/A");
                                                     }
                                                 } else {
-                                                    sizeLabel->setString("Save data size: N/A");
+                                                    sizeLabel->setString("Account Save data size: N/A");
                                                     levelDataSizeLabel->setString("Level data size: N/A");
                                                 }
                                             } else {
-                                                sizeLabel->setString("Save data size: ...");
+                                                sizeLabel->setString("Account Save data size: ...");
                                                 levelDataSizeLabel->setString("Level data size: ...");
                                             }
                                         });
@@ -402,22 +402,22 @@ void BackupPopup::onSave(CCObject *sender)
                                                 if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
                                                 double saveMB = saveBytes / (1024.0 * 1024.0);
                                                 double levelMB = levelBytes / (1024.0 * 1024.0);
-                                                sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
                                                 levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
                                             } else {
-                                                sizeLabel->setString("Save data size: N/A");
+                                                sizeLabel->setString("Account Save data size: N/A");
                                                 levelDataSizeLabel->setString("Level data size: N/A");
                                             }
                                         } else {
-                                            sizeLabel->setString("Save data size: N/A");
+                                            sizeLabel->setString("Account Save data size: N/A");
                                             levelDataSizeLabel->setString("Level data size: N/A");
                                         }
                                     } else {
-                                        sizeLabel->setString("Save data size: N/A");
+                                        sizeLabel->setString("Account Save data size: N/A");
                                         levelDataSizeLabel->setString("Level data size: N/A");
                                     }
                                 } else {
-                                    sizeLabel->setString("Save data size: ...");
+                                    sizeLabel->setString("Account Save data size: ...");
                                     levelDataSizeLabel->setString("Level data size: ...");
                                 }
                             });
@@ -486,7 +486,7 @@ void BackupPopup::onLoad(CCObject *sender)
 {
     geode::createQuickPopup(
         "Load Data",
-        "Do you want to <cg>download</c> your account data from the backup server?\n<cy>This will overwrite your current account data.</c>",
+        "Do you want to <cg>download</c> your account data from the backup server?\n<cy>This will merge your current account data.</c>",
         "Cancel", "Load",
         [this, sender](FLAlertLayer *, bool confirmed)
         {
@@ -552,7 +552,7 @@ void BackupPopup::onDelete(CCObject *sender)
 {
     geode::createQuickPopup(
         "Delete Data",
-        "Do you want to <cg>permanently delete</c> your account and local level data from the backup server?\n<cy>This action cannot be undone.</c>",
+        "Do you want to <cr>permanently delete</c> your account data and local level data from the backup server?\n<cy>This action cannot be undone.</c>",
         "Cancel", "Delete",
         [this, sender](FLAlertLayer *, bool confirmed)
         {
@@ -617,22 +617,22 @@ void BackupPopup::onDelete(CCObject *sender)
                                                         if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
                                                         double saveMB = saveBytes / (1024.0 * 1024.0);
                                                         double levelMB = levelBytes / (1024.0 * 1024.0);
-                                                        sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                        sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
                                                         levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                                                     } else {
-                                                        sizeLabel->setString("Save data size: N/A");
+                                                        sizeLabel->setString("Account Save data size: N/A");
                                                         levelDataSizeLabel->setString("Level data size: N/A");
                                                     }
                                                 } else {
-                                                    sizeLabel->setString("Save data size: N/A");
+                                                    sizeLabel->setString("Account Save data size: N/A");
                                                     levelDataSizeLabel->setString("Level data size: N/A");
                                                 }
                                             } else {
-                                                sizeLabel->setString("Save data size: N/A");
+                                                sizeLabel->setString("Account Save data size: N/A");
                                                 levelDataSizeLabel->setString("Level data size: N/A");
                                             }
                                         } else {
-                                            sizeLabel->setString("Save data size: ...");
+                                            sizeLabel->setString("Account Save data size: ...");
                                             levelDataSizeLabel->setString("Level data size: ...");
                                         }
                                     });
@@ -683,7 +683,7 @@ void BackupPopup::onLoadLocalLevels(CCObject *sender)
 {
     geode::createQuickPopup(
         "Load Local Levels",
-        "Do you want to <cg>download</c> your local levels from the backup server?\n<cy>This will overwrite your current local levels.</c>",
+        "Do you want to <cg>download</c> your local levels from the backup server?\n<cy>This will merge your current local levels.</c>",
         "Cancel", "Load",
         [this, sender](FLAlertLayer *, bool confirmed)
         {
