@@ -135,7 +135,7 @@ bool BackupPopup::setup()
                             double saveMB = saveBytes / (1024.0 * 1024.0);
                             double levelMB = levelBytes / (1024.0 * 1024.0);
                             sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
-                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                         } else {
                             sizeLabel->setString("Save data size: N/A");
                             levelDataSizeLabel->setString("Level data size: N/A");
@@ -316,7 +316,7 @@ void BackupPopup::onSave(CCObject *sender)
                                                             double saveMB = saveBytes / (1024.0 * 1024.0);
                                                             double levelMB = levelBytes / (1024.0 * 1024.0);
                                                             sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
-                                                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                                                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
                                                         } else {
                                                             sizeLabel->setString("Save data size: N/A");
                                                             levelDataSizeLabel->setString("Level data size: N/A");
