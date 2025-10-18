@@ -16,10 +16,15 @@ protected:
 private:
     void onSave(CCObject *);
     void onLoad(CCObject *);
+    void onLoadLocalLevels(CCObject *);
     void onDelete(CCObject *);
     void onModSettings(CCObject *);
 
+    void disableButton(CCObject *sender);
+    void enableButton(CCObject *sender);
+
     CCLabelBMFont *sizeLabel = nullptr;
+    CCLabelBMFont *levelDataSizeLabel = nullptr;
     CCLabelBMFont *lastSavedLabel = nullptr;
     CCLabelBMFont *statusLabel = nullptr;
 };

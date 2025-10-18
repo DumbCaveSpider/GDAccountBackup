@@ -8,7 +8,7 @@
 	},
 	"id": "arcticwoof.account_backup",
 	"name": "Account Backup",
-	"version": "v1.0.2",
+	"version": "v1.0.3",
 	"developer": "ArcticWoof",
 	"description": "Alternative account cloud backup option",
 	"resources": {

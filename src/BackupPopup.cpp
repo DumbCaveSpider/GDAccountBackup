@@ -39,23 +39,30 @@ bool BackupPopup::setup()
     std::string labelText = "Backing up: " + std::string(name);
     auto label = CCLabelBMFont::create(labelText.c_str(), "bigFont.fnt");
     label->setAlignment(kCCTextAlignmentCenter);
-    label->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 50});
+    label->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 40});
     label->setScale(0.7f);
-    m_mainLayer->addChild(label);
+    m_mainLayer->addChild(label, 2);
 
     // account size
     sizeLabel = CCLabelBMFont::create("Account size: ...", "chatFont.fnt");
     sizeLabel->setAlignment(kCCTextAlignmentCenter);
-    sizeLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 70});
+    sizeLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 60});
     sizeLabel->setScale(0.5f);
-    m_mainLayer->addChild(sizeLabel);
+    m_mainLayer->addChild(sizeLabel, 2);
+
+    // level data size label
+    levelDataSizeLabel = CCLabelBMFont::create("Level Data size: ...", "chatFont.fnt");
+    levelDataSizeLabel->setAlignment(kCCTextAlignmentCenter);
+    levelDataSizeLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 70});
+    levelDataSizeLabel->setScale(0.5f);
+    m_mainLayer->addChild(levelDataSizeLabel, 2);
 
     // last saved label
     lastSavedLabel = CCLabelBMFont::create("Last Saved: ...", "chatFont.fnt");
     lastSavedLabel->setAlignment(kCCTextAlignmentCenter);
     lastSavedLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 80});
-    lastSavedLabel->setScale(0.45f);
-    m_mainLayer->addChild(lastSavedLabel);
+    lastSavedLabel->setScale(0.5f);
+    m_mainLayer->addChild(lastSavedLabel, 2);
     auto updateLastSaved = [this]()
     {
         int accountId = 0;
@@ -115,56 +122,77 @@ bool BackupPopup::setup()
                     auto strResult = resp->string();
                     if (strResult) {
                         const std::string &str = strResult.unwrap();
-                        char* endptr = nullptr;
-                        double sizeBytes = std::strtod(str.c_str(), &endptr); // byte into megabytes
-                        if (endptr != str.c_str() && *endptr == '\0') {
-                            double sizeMB = sizeBytes / (1024.0 * 1024.0);
-                            sizeLabel->setString(fmt::format("Compressed Save data size: {:.2f} MB", sizeMB).c_str());
+                        // expecting JSON: {"saveData":12345,"levelData":67890}
+                        auto parsed = matjson::Value::parse(str);
+                        if (parsed) {
+                            auto obj = parsed.unwrap();
+                            long long saveBytes = 0;
+                            long long levelBytes = 0;
+                            if (auto s = obj["saveData"].asInt())
+                                saveBytes = s.unwrap();
+                            if (auto l = obj["levelData"].asInt())
+                                levelBytes = l.unwrap();
+                            double saveMB = saveBytes / (1024.0 * 1024.0);
+                            double levelMB = levelBytes / (1024.0 * 1024.0);
+                            sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
                         } else {
-                            sizeLabel->setString("Compressed Save data size: N/A");
+                            sizeLabel->setString("Save data size: N/A");
+                            levelDataSizeLabel->setString("Level data size: N/A");
                         }
                     } else {
-                        sizeLabel->setString("Compressed Save data size: N/A");
+                        sizeLabel->setString("Save data size: N/A");
+                        levelDataSizeLabel->setString("Level data size: N/A");
                     }
                 } else {
-                    sizeLabel->setString("Compressed Save data size: N/A");
+                    sizeLabel->setString("Save data size: N/A");
+                    levelDataSizeLabel->setString("Level data size: N/A");
                 }
             } else {
-                sizeLabel->setString("Compressed Save data size: ...");
+                sizeLabel->setString("Save data size: ...");
+                levelDataSizeLabel->setString("Level data size: ...");
             } });
         sizeListener.setFilter(std::move(req));
     };
     updateSize();
 
-    // create three vertically centered buttons: Save, Load, Delete
     float centerX = m_mainLayer->getContentSize().width / 2;
-    float centerY = m_mainLayer->getContentSize().height / 2 - 15.f;
-    float verticalSpacing = 45.f;
+    float centerY = m_mainLayer->getContentSize().height / 2 - 20.f;
+    float verticalSpacing = 36.f;
+
+    const int numButtons = 4;
 
     auto saveBtn = ButtonSprite::create("Save", 180.f);
     auto saveItem = CCMenuItemSpriteExtra::create(saveBtn, this, menu_selector(BackupPopup::onSave));
-    saveItem->setPosition({0, verticalSpacing});
 
-    auto loadBtn = ButtonSprite::create("Load", 180.f);
+    auto loadBtn = ButtonSprite::create("Load Account", 180.f);
     auto loadItem = CCMenuItemSpriteExtra::create(loadBtn, this, menu_selector(BackupPopup::onLoad));
-    loadItem->setPosition({0, 0});
+
+    auto loadLevelsBtn = ButtonSprite::create("Load Local Levels", 180.f);
+    auto loadLevelsItem = CCMenuItemSpriteExtra::create(loadLevelsBtn, this, menu_selector(BackupPopup::onLoadLocalLevels));
 
     auto deleteBtn = ButtonSprite::create("Delete", 180.f);
     auto deleteItem = CCMenuItemSpriteExtra::create(deleteBtn, this, menu_selector(BackupPopup::onDelete));
-    deleteItem->setPosition({0, -verticalSpacing});
-
-    // status label underneath the delete button
-    statusLabel = CCLabelBMFont::create("Status: Idle", "bigFont.fnt");
-    statusLabel->setPosition({centerX, centerY - 80.f});
-    statusLabel->setScale(0.5f);
-    m_mainLayer->addChild(statusLabel);
+    float startY = verticalSpacing * ((numButtons - 1) / 2.0f);
+    saveItem->setPosition({0, startY});
+    loadItem->setPosition({0, startY - verticalSpacing});
+    loadLevelsItem->setPosition({0, startY - 2.0f * verticalSpacing});
+    deleteItem->setPosition({0, startY - 3.0f * verticalSpacing});
 
     auto menu = CCMenu::create();
     menu->addChild(saveItem);
     menu->addChild(loadItem);
+    menu->addChild(loadLevelsItem);
     menu->addChild(deleteItem);
     menu->setPosition({centerX, centerY});
     m_mainLayer->addChild(menu);
+
+    // status label underneath the bottom button (separate from the button spacing)
+    float bottomY = startY - (numButtons - 1) * verticalSpacing - 10; // relative to menu center
+    statusLabel = CCLabelBMFont::create("Status: Idle", "bigFont.fnt");
+    statusLabel->setPosition({centerX, centerY + bottomY - verticalSpacing});
+    statusLabel->setScale(0.5f);
+    m_mainLayer->addChild(statusLabel, 2);
 
     // mod settings button in the top right corner
     auto modMenu = CCMenu::create();
@@ -201,18 +229,21 @@ bool BackupPopup::setup()
     return true;
 }
 
-void BackupPopup::onSave(CCObject *)
+void BackupPopup::onSave(CCObject *sender)
 {
     geode::createQuickPopup(
         "Save Data",
         "Do you want to <cg>save</c> your account data to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
         "Cancel", "Save",
-        [this](FLAlertLayer *, bool confirmed)
+    [this, sender](FLAlertLayer *, bool confirmed)
         {
             if (!confirmed)
                 return;
+            this->disableButton(sender);
+
             if (statusLabel)
                 statusLabel->setString("Status: Saving account data...");
+
             std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
             int accountId = 0;
             if (auto acct = GJAccountManager::get())
@@ -220,103 +251,212 @@ void BackupPopup::onSave(CCObject *)
                 accountId = acct->m_accountID;
             }
             std::string saveData;
+            std::string levelData;
             if (auto gm = GameManager::sharedState())
             {
                 saveData = gm->getCompressedSaveString();
+                levelData = LocalLevelManager::get()->getCompressedSaveString();
             }
-            matjson::Value body = matjson::makeObject({{"accountId", accountId},
-                                                       {"saveData", saveData},
-                                                       {"argonToken", token}});
+
             std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
-            auto req = geode::utils::web::WebRequest()
-                           .timeout(std::chrono::seconds(30))
-                           .header("Content-Type", "application/json")
-                           .bodyJSON(body)
-                           .post(backupUrl + "/save");
-            static geode::EventListener<geode::utils::web::WebTask> listener;
-            listener.bind([this](geode::utils::web::WebTask::Event *e)
-                          {
-                if (auto* resp = e->getValue()) {
+
+            // First request: save account data only
+            matjson::Value bodySave = matjson::makeObject({{"accountId", accountId}, {"saveData", saveData}, {"argonToken", token}});
+            auto reqSave = geode::utils::web::WebRequest()
+                               .timeout(std::chrono::seconds(30))
+                               .header("Content-Type", "application/json")
+                               .bodyJSON(bodySave)
+                               .post(backupUrl + "/save");
+
+            static geode::EventListener<geode::utils::web::WebTask> saveListener;
+            saveListener.bind([this, sender, levelData, accountId, token, backupUrl](geode::utils::web::WebTask::Event *e)
+                              {
+                if (auto *resp = e->getValue()) {
                     if (resp->ok()) {
-                        Notification::create("Backup saved successfully!", NotificationIcon::Success)->show();
-                        if (statusLabel)
-                            statusLabel->setString("Status: Save successful");
-                        if constexpr (std::is_member_object_pointer_v<decltype(&BackupPopup::sizeLabel)>) {
-                            if (sizeLabel && lastSavedLabel) {
-                                    int accountId = 0;
-                                    if (auto acct = GJAccountManager::get()) {
-                                        accountId = acct->m_accountID;
-                                    }
-                                    std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
-                                    matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
-                                    std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
-                                    auto reqSize = geode::utils::web::WebRequest()
-                                        .timeout(std::chrono::seconds(30))
-                                        .header("Content-Type", "application/json")
-                                        .bodyJSON(body)
-                                        .post(backupUrl + "/check");
-                                    static geode::EventListener<geode::utils::web::WebTask> sizeListener;
-                                    sizeListener.bind([this](geode::utils::web::WebTask::Event *e) {
-                                        if (auto *resp = e->getValue()) {
-                                            if (resp->ok()) {
-                                                auto strResult = resp->string();
-                                                if (strResult) {
-                                                    const std::string &str = strResult.unwrap();
-                                                    char* endptr = nullptr;
-                                                    double sizeBytes = std::strtod(str.c_str(), &endptr);
-                                                    if (endptr != str.c_str() && *endptr == '\0') {
-                                                        double sizeMB = sizeBytes / (1024.0 * 1024.0);
-                                                        sizeLabel->setString(fmt::format("Compressed Save data size: {:.2f} MB", sizeMB).c_str());
+                        // account save succeeded
+                        if (!levelData.empty()) {
+                            // now save level data
+                            statusLabel->setString("Status: Saving level data...");
+                            matjson::Value bodyLevel = matjson::makeObject({{"accountId", accountId}, {"levelData", levelData}, {"argonToken", token}});
+                            auto reqLevel = geode::utils::web::WebRequest()
+                                                .timeout(std::chrono::seconds(30))
+                                                .header("Content-Type", "application/json")
+                                                .bodyJSON(bodyLevel)
+                                                .post(backupUrl + "/save");
+                            static geode::EventListener<geode::utils::web::WebTask> levelListener;
+                            levelListener.bind([this, sender, accountId, token, backupUrl](geode::utils::web::WebTask::Event *ev)
+                                               {
+                                if (auto *r2 = ev->getValue()) {
+                                    if (r2->ok()) {
+                                        Notification::create("Backup saved successfully!", NotificationIcon::Success)->show();
+                                        if (statusLabel)
+                                            statusLabel->setString("Status: Save successful");
+                                        this->enableButton(sender);
+                                        // refresh size
+                                        matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+                                        auto reqSize = geode::utils::web::WebRequest()
+                                            .timeout(std::chrono::seconds(30))
+                                            .header("Content-Type", "application/json")
+                                            .bodyJSON(body)
+                                            .post(backupUrl + "/check");
+                                        static geode::EventListener<geode::utils::web::WebTask> sizeListener2;
+                                        sizeListener2.bind([this](geode::utils::web::WebTask::Event *e2) {
+                                            if (auto *resp = e2->getValue()) {
+                                                if (resp->ok()) {
+                                                    auto strResult = resp->string();
+                                                    if (strResult) {
+                                                        const std::string &str = strResult.unwrap();
+                                                        auto parsed = matjson::Value::parse(str);
+                                                        if (parsed) {
+                                                            auto obj = parsed.unwrap();
+                                                            long long saveBytes = 0;
+                                                            long long levelBytes = 0;
+                                                            if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
+                                                            if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
+                                                            double saveMB = saveBytes / (1024.0 * 1024.0);
+                                                            double levelMB = levelBytes / (1024.0 * 1024.0);
+                                                            sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                                                        } else {
+                                                            sizeLabel->setString("Save data size: N/A");
+                                                            levelDataSizeLabel->setString("Level data size: N/A");
+                                                        }
                                                     } else {
-                                                        sizeLabel->setString("Compressed Save data size: N/A");
+                                                        sizeLabel->setString("Save data size: N/A");
+                                                        levelDataSizeLabel->setString("Level data size: N/A");
                                                     }
                                                 } else {
-                                                    sizeLabel->setString("Compressed Save data size: N/A");
+                                                    sizeLabel->setString("Save data size: N/A");
+                                                    levelDataSizeLabel->setString("Level data size: N/A");
                                                 }
                                             } else {
-                                                sizeLabel->setString("Compressed Save data size: N/A");
+                                                sizeLabel->setString("Save data size: ...");
+                                                levelDataSizeLabel->setString("Level data size: ...");
                                             }
-                                        } else {
-                                            sizeLabel->setString("Compressed Save data size: ...");
-                                        }
-                                    });
-                                    sizeListener.setFilter(std::move(reqSize));
-                                    auto reqLast = geode::utils::web::WebRequest()
-                                        .timeout(std::chrono::seconds(30))
-                                        .header("Content-Type", "application/json")
-                                        .bodyJSON(body)
-                                        .post(backupUrl + "/lastsaved");
-                                    static geode::EventListener<geode::utils::web::WebTask> lastSavedListener;
-                                    lastSavedListener.bind([this](geode::utils::web::WebTask::Event *e) {
-                                        if (auto *resp = e->getValue()) {
-                                            if (resp->ok()) {
-                                                auto strResult = resp->string();
-                                                if (strResult) {
-                                                    lastSavedLabel->setString(fmt::format("Last Saved: {}", strResult.unwrap()).c_str());
+                                        });
+                                        sizeListener2.setFilter(std::move(reqSize));
+                                        // refresh last saved
+                                        auto reqLast = geode::utils::web::WebRequest()
+                                            .timeout(std::chrono::seconds(30))
+                                            .header("Content-Type", "application/json")
+                                            .bodyJSON(body)
+                                            .post(backupUrl + "/lastsaved");
+                                        static geode::EventListener<geode::utils::web::WebTask> lastSavedListener2;
+                                        lastSavedListener2.bind([this](geode::utils::web::WebTask::Event *e3) {
+                                            if (auto *resp = e3->getValue()) {
+                                                if (resp->ok()) {
+                                                    auto strResult = resp->string();
+                                                    if (strResult) {
+                                                        lastSavedLabel->setString(fmt::format("Last Saved: {}", strResult.unwrap()).c_str());
+                                                    } else {
+                                                        lastSavedLabel->setString("Last Saved: N/A");
+                                                    }
                                                 } else {
                                                     lastSavedLabel->setString("Last Saved: N/A");
                                                 }
                                             } else {
-                                                lastSavedLabel->setString("Last Saved: N/A");
+                                                lastSavedLabel->setString("Last Saved: ...");
+                                            }
+                                        });
+                                        lastSavedListener2.setFilter(std::move(reqLast));
+                                    } else {
+                                        Notification::create("Level save failed: " + std::to_string(r2->code()), NotificationIcon::Error)->show();
+                                        this->enableButton(sender);
+                                        if (statusLabel)
+                                            statusLabel->setString("Status: Save failed");
+                                    }
+                                } else if (ev->isCancelled()) {
+                                    Notification::create("Level save request was cancelled", NotificationIcon::Error)->show();
+                                    this->enableButton(sender);
+                                    if (statusLabel)
+                                        statusLabel->setString("Status: Idle");
+                                }
+                            });
+                            levelListener.setFilter(std::move(reqLevel));
+                        } else {
+                            // no level data to save
+                            Notification::create("Backup saved successfully!", NotificationIcon::Success)->show();
+                            if (statusLabel)
+                                statusLabel->setString("Status: Save successful");
+                            this->enableButton(sender);
+                            // refresh size
+                            matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+                            auto reqSize = geode::utils::web::WebRequest()
+                                .timeout(std::chrono::seconds(30))
+                                .header("Content-Type", "application/json")
+                                .bodyJSON(body)
+                                .post(backupUrl + "/check");
+                            static geode::EventListener<geode::utils::web::WebTask> sizeListener3;
+                            sizeListener3.bind([this](geode::utils::web::WebTask::Event *e) {
+                                if (auto *resp = e->getValue()) {
+                                    if (resp->ok()) {
+                                        auto strResult = resp->string();
+                                        if (strResult) {
+                                            const std::string &str = strResult.unwrap();
+                                            auto parsed = matjson::Value::parse(str);
+                                            if (parsed) {
+                                                auto obj = parsed.unwrap();
+                                                long long saveBytes = 0;
+                                                long long levelBytes = 0;
+                                                if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
+                                                if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
+                                                double saveMB = saveBytes / (1024.0 * 1024.0);
+                                                double levelMB = levelBytes / (1024.0 * 1024.0);
+                                                sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                                            } else {
+                                                sizeLabel->setString("Save data size: N/A");
+                                                levelDataSizeLabel->setString("Level data size: N/A");
                                             }
                                         } else {
-                                            lastSavedLabel->setString("Last Saved: ...");
+                                            sizeLabel->setString("Save data size: N/A");
+                                            levelDataSizeLabel->setString("Level data size: N/A");
                                         }
-                                    });
-                                    lastSavedListener.setFilter(std::move(reqLast));
-                            }
+                                    } else {
+                                        sizeLabel->setString("Save data size: N/A");
+                                        levelDataSizeLabel->setString("Level data size: N/A");
+                                    }
+                                } else {
+                                    sizeLabel->setString("Save data size: ...");
+                                    levelDataSizeLabel->setString("Level data size: ...");
+                                }
+                            });
+                            sizeListener3.setFilter(std::move(reqSize));
+                            auto reqLast2 = geode::utils::web::WebRequest()
+                                .timeout(std::chrono::seconds(30))
+                                .header("Content-Type", "application/json")
+                                .bodyJSON(body)
+                                .post(backupUrl + "/lastsaved");
+                            static geode::EventListener<geode::utils::web::WebTask> lastSavedListener3;
+                            lastSavedListener3.bind([this](geode::utils::web::WebTask::Event *e) {
+                                if (auto *resp = e->getValue()) {
+                                    if (resp->ok()) {
+                                        auto strResult = resp->string();
+                                        if (strResult) {
+                                            lastSavedLabel->setString(fmt::format("Last Saved: {}", strResult.unwrap()).c_str());
+                                        } else {
+                                            lastSavedLabel->setString("Last Saved: N/A");
+                                        }
+                                    } else {
+                                        lastSavedLabel->setString("Last Saved: N/A");
+                                    }
+                                } else {
+                                    lastSavedLabel->setString("Last Saved: ...");
+                                }
+                            });
+                            lastSavedListener3.setFilter(std::move(reqLast2));
                         }
                     } else {
                         Notification::create("Save failed: " + std::to_string(resp->code()), NotificationIcon::Error)->show();
+                        this->enableButton(sender);
                         if (statusLabel)
                             statusLabel->setString("Status: Save failed");
                     }
                 } else if (e->isCancelled()) {
                     Notification::create("Save request was cancelled", NotificationIcon::Error)->show();
-                    if (statusLabel)
-                        statusLabel->setString("Status: Idle");
+                    this->enableButton(sender);
                 } });
-            listener.setFilter(std::move(req));
+            saveListener.setFilter(std::move(reqSave));
         });
     // check if this is the first time setup
     if (!Mod::get()->getSavedValue<bool>("hasRead"))
@@ -342,16 +482,19 @@ void BackupPopup::onSave(CCObject *)
     }
 }
 
-void BackupPopup::onLoad(CCObject *)
+void BackupPopup::onLoad(CCObject *sender)
 {
     geode::createQuickPopup(
         "Load Data",
         "Do you want to <cg>download</c> your account data from the backup server?\n<cy>This will overwrite your current account data.</c>",
         "Cancel", "Load",
-        [this](FLAlertLayer *, bool confirmed)
+        [this, sender](FLAlertLayer *, bool confirmed)
         {
             if (!confirmed)
                 return;
+
+            this->disableButton(sender);
+
             if (statusLabel)
                 statusLabel->setString("Status: Loading account data...");
             std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
@@ -369,7 +512,7 @@ void BackupPopup::onLoad(CCObject *)
                            .bodyJSON(body)
                            .post(backupUrl + "/load");
             static geode::EventListener<geode::utils::web::WebTask> listener;
-            listener.bind([this](geode::utils::web::WebTask::Event *e)
+            listener.bind([this, sender](geode::utils::web::WebTask::Event *e)
                           {
                 if (auto* resp = e->getValue()) {
                     if (resp->ok()) {
@@ -379,21 +522,25 @@ void BackupPopup::onLoad(CCObject *)
                                 gd::string saveStr = result.unwrap();
                                 gm->loadFromCompressedString(saveStr);
                                 Notification::create("Backup loaded successfully!", NotificationIcon::Success)->show();
+                                this->enableButton(sender);
                                 if (statusLabel)
                                     statusLabel->setString("Status: Load successful");
                             } else {
                                 Notification::create("Failed to get backup data from response", NotificationIcon::Error)->show();
+                                this->enableButton(sender);
                                 if (statusLabel)
                                     statusLabel->setString("Status: Idle");
                             }
                         }
                     } else {
                         Notification::create("Load failed: " + std::to_string(resp->code()), NotificationIcon::Error)->show();
+                        this->enableButton(sender);
                         if (statusLabel)
                             statusLabel->setString(fmt::format("Status: Load failed {}", resp->code()).c_str());
                     }
                 } else if (e->isCancelled()) {
                     Notification::create("Load request was cancelled", NotificationIcon::Error)->show();
+                    this->enableButton(sender);
                     if (statusLabel)
                         statusLabel->setString("Status: Idle");
                 } });
@@ -401,16 +548,18 @@ void BackupPopup::onLoad(CCObject *)
         });
 }
 
-void BackupPopup::onDelete(CCObject *)
+void BackupPopup::onDelete(CCObject *sender)
 {
     geode::createQuickPopup(
         "Delete Data",
-        "Do you want to <cg>permanently delete</c> your backup from the backup server?\n<cy>This action cannot be undone.</c>",
+        "Do you want to <cg>permanently delete</c> your account and local level data from the backup server?\n<cy>This action cannot be undone.</c>",
         "Cancel", "Delete",
-        [this](FLAlertLayer *, bool confirmed)
+        [this, sender](FLAlertLayer *, bool confirmed)
         {
             if (!confirmed)
                 return;
+
+            this->disableButton(sender);
             if (statusLabel)
                 statusLabel->setString("Status: Deleting backup...");
             std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
@@ -428,11 +577,12 @@ void BackupPopup::onDelete(CCObject *)
                            .bodyJSON(body)
                            .post(backupUrl + "/delete");
             static geode::EventListener<geode::utils::web::WebTask> listener;
-            listener.bind([this](geode::utils::web::WebTask::Event *e)
+            listener.bind([this, sender](geode::utils::web::WebTask::Event *e)
                           {
                 if (auto* resp = e->getValue()) {
                     if (resp->ok()) {
                         Notification::create("Backup deleted successfully!", NotificationIcon::Success)->show();
+                        this->enableButton(sender);
                         if (statusLabel)
                             statusLabel->setString("Status: Delete successful");
                         // Update size and last saved labels
@@ -458,22 +608,32 @@ void BackupPopup::onDelete(CCObject *)
                                                 auto strResult = resp->string();
                                                 if (strResult) {
                                                     const std::string &str = strResult.unwrap();
-                                                    char* endptr = nullptr;
-                                                    double sizeBytes = std::strtod(str.c_str(), &endptr);
-                                                    if (endptr != str.c_str() && *endptr == '\0') {
-                                                        double sizeMB = sizeBytes / (1024.0 * 1024.0);
-                                                        sizeLabel->setString(fmt::format("Compressed Save data size: {:.2f} MB", sizeMB).c_str());
+                                                    auto parsed = matjson::Value::parse(str);
+                                                    if (parsed) {
+                                                        auto obj = parsed.unwrap();
+                                                        long long saveBytes = 0;
+                                                        long long levelBytes = 0;
+                                                        if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
+                                                        if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
+                                                        double saveMB = saveBytes / (1024.0 * 1024.0);
+                                                        double levelMB = levelBytes / (1024.0 * 1024.0);
+                                                        sizeLabel->setString(fmt::format("Save data size: {:.2f} MB", saveMB).c_str());
+                                                        levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
                                                     } else {
-                                                        sizeLabel->setString("Compressed Save data size: N/A");
+                                                        sizeLabel->setString("Save data size: N/A");
+                                                        levelDataSizeLabel->setString("Level data size: N/A");
                                                     }
                                                 } else {
-                                                    sizeLabel->setString("Compressed Save data size: N/A");
+                                                    sizeLabel->setString("Save data size: N/A");
+                                                    levelDataSizeLabel->setString("Level data size: N/A");
                                                 }
                                             } else {
-                                                sizeLabel->setString("Compressed Save data size: N/A");
+                                                sizeLabel->setString("Save data size: N/A");
+                                                levelDataSizeLabel->setString("Level data size: N/A");
                                             }
                                         } else {
-                                            sizeLabel->setString("Compressed Save data size: ...");
+                                            sizeLabel->setString("Save data size: ...");
+                                            levelDataSizeLabel->setString("Level data size: ...");
                                         }
                                     });
                                     sizeListener.setFilter(std::move(reqSize));
@@ -505,16 +665,143 @@ void BackupPopup::onDelete(CCObject *)
                         }
                     } else {
                         Notification::create("Delete failed: " + std::to_string(resp->code()), NotificationIcon::Error)->show();
+                        this->enableButton(sender);
                         if (statusLabel)
                             statusLabel->setString(fmt::format("Status: Delete failed {}", resp->code()).c_str());
                     }
                 } else if (e->isCancelled()) {
                     Notification::create("Delete request was cancelled", NotificationIcon::Error)->show();
+                    this->enableButton(sender);
                     if (statusLabel)
                         statusLabel->setString("Status: Idle");
                 } });
             listener.setFilter(std::move(req));
         });
+}
+
+void BackupPopup::onLoadLocalLevels(CCObject *sender)
+{
+    geode::createQuickPopup(
+        "Load Local Levels",
+        "Do you want to <cg>download</c> your local levels from the backup server?\n<cy>This will overwrite your current local levels.</c>",
+        "Cancel", "Load",
+        [this, sender](FLAlertLayer *, bool confirmed)
+        {
+            if (!confirmed)
+                return;
+
+            this->disableButton(sender);
+
+            if (statusLabel)
+                statusLabel->setString("Status: Loading local levels...");
+            std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
+            int accountId = 0;
+            if (auto acct = GJAccountManager::get())
+            {
+                accountId = acct->m_accountID;
+            }
+            matjson::Value body = matjson::makeObject({{"accountId", accountId},
+                                                       {"argonToken", token}});
+            std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
+            auto req = geode::utils::web::WebRequest()
+                           .timeout(std::chrono::seconds(30))
+                           .header("Content-Type", "application/json")
+                           .bodyJSON(body)
+                           .post(backupUrl + "/loadlevel");
+            static geode::EventListener<geode::utils::web::WebTask> listener;
+            listener.bind([this, sender](geode::utils::web::WebTask::Event *e)
+                          {
+                if (auto* resp = e->getValue()) {
+                    if (resp->ok()) {
+                        auto result = resp->string();
+                        if (result) {
+                            // load into LocalLevelManager
+                            if (auto llm = LocalLevelManager::sharedState()) {
+                                gd::string levelsStr = result.unwrap();
+                                llm->loadFromCompressedString(levelsStr);
+                                Notification::create("Local levels loaded successfully!", NotificationIcon::Success)->show();
+                                this->enableButton(sender);
+                                if (statusLabel)
+                                    statusLabel->setString("Status: Load local levels successful");
+                            } else {
+                                Notification::create("LocalLevelManager not available", NotificationIcon::Error)->show();
+                                this->enableButton(sender);
+                                if (statusLabel)
+                                    statusLabel->setString("Status: Idle");
+                            }
+                        } else {
+                            Notification::create("Failed to get local levels data from response", NotificationIcon::Error)->show();
+                            this->enableButton(sender);
+                            if (statusLabel)
+                                statusLabel->setString("Status: Idle");
+                        }
+                    } else {
+                        Notification::create("Load local levels failed: " + std::to_string(resp->code()), NotificationIcon::Error)->show();
+                        this->enableButton(sender);
+                        if (statusLabel)
+                            statusLabel->setString(fmt::format("Status: Load failed {}", resp->code()).c_str());
+                    }
+                } else if (e->isCancelled()) {
+                    Notification::create("Load local levels request was cancelled", NotificationIcon::Error)->show();
+                    this->enableButton(sender);
+                    if (statusLabel)
+                        statusLabel->setString("Status: Idle");
+                } });
+            listener.setFilter(std::move(req));
+        });
+}
+
+
+void BackupPopup::disableButton(CCObject *sender)
+{
+    // re-enable the save
+    if (auto button = static_cast<CCMenuItemSpriteExtra *>(sender))
+    {
+        button->setEnabled(false);
+        // set the buttonsprite back to full opacity, including its children
+        if (auto btnSprite = typeinfo_cast<ButtonSprite *>(button->getNormalImage()))
+        {
+            btnSprite->setOpacity(128);
+            // also un-fade all children so labels / icons are normal
+            auto children = btnSprite->getChildren();
+            for (unsigned int i = 0; i < children->count(); ++i)
+            {
+                if (auto child = typeinfo_cast<CCNode *>(children->objectAtIndex(i)))
+                {
+                    if (auto rgbaChild = typeinfo_cast<CCNodeRGBA *>(child))
+                    {
+                        rgbaChild->setOpacity(128);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void BackupPopup::enableButton(CCObject *sender)
+{
+    // re-enable the save
+    if (auto button = static_cast<CCMenuItemSpriteExtra *>(sender))
+    {
+        button->setEnabled(true);
+        // set the buttonsprite back to full opacity, including its children
+        if (auto btnSprite = typeinfo_cast<ButtonSprite *>(button->getNormalImage()))
+        {
+            btnSprite->setOpacity(255);
+            // also un-fade all children so labels / icons are normal
+            auto children = btnSprite->getChildren();
+            for (unsigned int i = 0; i < children->count(); ++i)
+            {
+                if (auto child = typeinfo_cast<CCNode *>(children->objectAtIndex(i)))
+                {
+                    if (auto rgbaChild = typeinfo_cast<CCNodeRGBA *>(child))
+                    {
+                        rgbaChild->setOpacity(255);
+                    }
+                }
+            }
+        }
+    }
 }
 
 void BackupPopup::onModSettings(CCObject *)
