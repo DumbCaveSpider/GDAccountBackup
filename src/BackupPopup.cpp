@@ -731,7 +731,7 @@ void BackupPopup::onLoadLocalLevels(CCObject *sender)
                             statusLabel->setString(fmt::format("Status: Load failed {}", resp->code()).c_str());
                     }
                 } else if (e->isCancelled()) {
-                    Notification::create("Load local levels request was cancelled", NotificationIcon::Error)->show();
+                    Notification::create("Load local levels request was cancelled or timed out", NotificationIcon::Error)->show();
                     this->enableButton(sender);
                     if (statusLabel)
                         statusLabel->setString("Status: Idle");

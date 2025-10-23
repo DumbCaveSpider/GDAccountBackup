@@ -193,6 +193,31 @@ class $modify(MyGameStatsManager, GameStatsManager)
             return;
         }
 
+        // make sure the player is on a level
+        if (!PlayLayer::get()) return;
+        // check if this is the first time setup
+        if (!Mod::get()->getSavedValue<bool>("hasRead"))
+        {
+            geode::MDPopup::create(
+                "PLEASE READ",
+                "### By clicking <cg>OK</cg>, you agree to the following terms:\n\n"
+                "<cy>1.</c> Your account data will be stored on a third-party server from <cg>ArcticWoof Services</c>.\n\n"
+                "<cy>2.</c> The server is not affiliated with the RobTop's official servers.\n\n"
+                "<cy>3.</c> You can delete your account data from the backup server by clicking the <cg>DELETE</c> button at any time.\n\n"
+                "<cy>4.</c> Your data will be used solely for backup purposes and will not be shared with anywhere else.\n\n"
+                "<cy>5.</c> You accept that there's a possibility of risk when using this service.\n\n"
+                "### The following data will be sent to the backup server:\n\n"
+                "<cl>- Your Geometry Dash Account ID</c>\n\n"
+                "<cl>- Your Argon Token</c>\n\n"
+                "<cl>- Your Account Save Data (Compressed)</c>\n\n"
+                "## <cr>Use this backup as an alternative option, not as the main backup solution for your account! Please use the <cg>main backup</cg> in the game.</c>\n\n"
+                "<cr>If you wish to opt out of this service, simply close the popup and uninstall the mod. You can delete your data from the server at any time by clicking the <cg>DELETE</c> button.</c>\n\n"
+                "<cc>This popup will only appear once! You can read the terms at <cg>https://arcticwoof.com.au/privacy</cg></c>",
+                "OK")
+                ->show();
+            Mod::get()->setSavedValue<bool>("hasRead", true);
+        }
+
         log::info("starting auto-backup");
         Notification::create("[Account Backup] Auto-backup in progress", NotificationIcon::Loading)->show();
         // backup only the account data
@@ -217,21 +242,22 @@ class $modify(MyGameStatsManager, GameStatsManager)
                            .bodyJSON(bodySave)
                            .post(backupUrl + "/save");
         static EventListener<WebTask> saveListener;
-        saveListener.bind([](WebTask::Event *e) {
+        saveListener.bind([this](WebTask::Event *e)
+                          {
             if (WebResponse* resp = e->getValue()) {
                 log::debug("Auto-backup response received {}", resp->code());
                 if (resp->ok()) {
                     log::info("Auto-backup successful");
-                    Notification::create("[Account Backup] Auto-backup completed successfully!", NotificationIcon::Success)->show();
+                    Notification::create("Auto-backup completed successfully!", NotificationIcon::Success)->show();
                 } else {
                     log::warn("Auto-backup failed with status: {}", resp->code());
-                    Notification::create(fmt::format("[Account Backup] Auto-backup failed with status: {}", resp->code()), NotificationIcon::Error)->show();
+                    Notification::create(fmt::format("Auto-backup failed with status: {}", resp->code()), NotificationIcon::Error)->show();
                 }
             } else if (e->isCancelled()) {
                 log::warn("Auto-backup request was cancelled");
-                Notification::create("[Account Backup] Auto-backup request was cancelled", NotificationIcon::Error)->show();
-            }
-        });
+                Notification::create("Auto-backup request was cancelled", NotificationIcon::Error)->show();
+            } });
+        saveListener.setFilter(std::move(reqSave));
         GameStatsManager::completedLevel(p0);
     }
 };

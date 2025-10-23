@@ -1,6 +1,8 @@
 # Account Backup
 
-Are you tired of being stuck on a saving loop from RobTop's cloud save? Do you want an alternative way to back up your Geometry Dash account data? Look no further! This mod provides an alternative account backup solution by allowing you to back up your account data and your local levels to a custom backup server.
+Are you tired of being stuck on a saving loop from RobTop's cloud save or kept getting those <cr>Backup Failed</c>? Do you want an alternative way to back up your Geometry Dash account data? 
+
+<cg>Look no further!</c> This mod provides an <cl>alternative account backup solution</c> by allowing you to back up your account data and your local levels to a custom backup server.
 
 ## Features
 
