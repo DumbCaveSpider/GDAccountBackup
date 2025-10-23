@@ -1,9 +1,14 @@
 # Account Backup
 
-Are you tired of Robtop's stupid account save server? Kept getting those <cr>Backup Failed</cr> messages everytime you tried to backup your account data to the cloud? <cy>Well this mod does exactly what you need!</c>
+Are you tired of being stuck on a saving loop from RobTop's cloud save? Do you want an alternative way to back up your Geometry Dash account data? Look no further! This mod provides an alternative account backup solution by allowing you to back up your account data and your local levels to a custom backup server.
 
-This mod acts as an <cg>alternative account backup server</c> that allows you to backup your account data to a <cg>third-party server</c>.
+## Features
 
+- Backup and restore your Geometry Dash account data to/from a custom backup server.
+- Auto backup your account data every time you beat a level.
+- Lots of QOL features that even the official cloud save doesn't have!
+
+## Self-Hosting
 <cy>You can host your own account backup server by checking **[GDAltWebserver](https://github.com/DumbCaveSpider/GDAltWebserver)** which is written in the <cc>Go Programming Language!</c>
 
 ### <cr>Use this backup mod as an alternative option, not as the main backup solution for your account!</c>

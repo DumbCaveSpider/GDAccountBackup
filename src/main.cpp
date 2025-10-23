@@ -1,10 +1,13 @@
 #include <Geode/Geode.hpp>
 #include <argon/argon.hpp>
 #include <Geode/modify/AccountLayer.hpp>
+#include <Geode/modify/GameStatsManager.hpp>
 #include <Geode/binding/GameManager.hpp>
 #include "BackupPopup.hpp"
 #include <Geode/utils/web.hpp>
 #include <matjson.hpp>
+
+#include "BackupPopup.hpp"
 
 using namespace geode::prelude;
 using namespace geode::utils::web;
@@ -174,5 +177,61 @@ class $modify(MyAccountLayer, AccountLayer)
                 }
             }
         }
+    }
+};
+
+// level completed (if rated) listener for auto-backup
+class $modify(MyGameStatsManager, GameStatsManager)
+{
+    void completedLevel(GJGameLevel *p0)
+    {
+        bool autoBackup = Mod::get()->getSettingValue<bool>("auto-backup");
+
+        if (!autoBackup)
+        {
+            log::warn("Auto-backup is disabled, skipping backup");
+            return;
+        }
+
+        log::info("starting auto-backup");
+        Notification::create("[Account Backup] Auto-backup in progress", NotificationIcon::Loading)->show();
+        // backup only the account data
+        std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
+        int accountId = 0;
+        if (auto acct = GJAccountManager::get())
+        {
+            accountId = acct->m_accountID;
+        }
+        std::string saveData;
+        if (auto gm = GameManager::sharedState())
+        {
+            saveData = gm->getCompressedSaveString();
+        }
+
+        std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
+
+        // First request: save account data only
+        matjson::Value bodySave = matjson::makeObject({{"accountId", accountId}, {"saveData", saveData}, {"argonToken", token}});
+        auto reqSave = geode::utils::web::WebRequest()
+                           .timeout(std::chrono::seconds(30))
+                           .bodyJSON(bodySave)
+                           .post(backupUrl + "/save");
+        static EventListener<WebTask> saveListener;
+        saveListener.bind([](WebTask::Event *e) {
+            if (WebResponse* resp = e->getValue()) {
+                log::debug("Auto-backup response received {}", resp->code());
+                if (resp->ok()) {
+                    log::info("Auto-backup successful");
+                    Notification::create("[Account Backup] Auto-backup completed successfully!", NotificationIcon::Success)->show();
+                } else {
+                    log::warn("Auto-backup failed with status: {}", resp->code());
+                    Notification::create(fmt::format("[Account Backup] Auto-backup failed with status: {}", resp->code()), NotificationIcon::Error)->show();
+                }
+            } else if (e->isCancelled()) {
+                log::warn("Auto-backup request was cancelled");
+                Notification::create("[Account Backup] Auto-backup request was cancelled", NotificationIcon::Error)->show();
+            }
+        });
+        GameStatsManager::completedLevel(p0);
     }
 };

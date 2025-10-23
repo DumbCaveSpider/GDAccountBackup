@@ -1,5 +1,5 @@
 {
-	"geode": "4.8.0",
+	"geode": "4.9.0",
 	"gd": {
 		"win": "2.2074",
 		"android": "2.2074",
@@ -8,7 +8,7 @@
 	},
 	"id": "arcticwoof.account_backup",
 	"name": "Account Backup",
-	"version": "v1.0.3",
+	"version": "v1.0.4",
 	"developer": "ArcticWoof",
 	"description": "Alternative account cloud backup option",
 	"resources": {
@@ -24,6 +24,12 @@
 			"default": "https://gdbackup.arcticwoof.xyz",
 			"match": "(http|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])",
 			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
+		},
+		"auto-backup": {
+			"type": "bool",
+			"name": "Auto Backup on Level Completion",
+			"description": "Automatically backup your account to the server whenever you complete a level. <cy>May experience slight lag spike upon level completion.</c>",
+			"default": false
 		}
 	},
 	"tags": ["online", "enhancement","utility"],
