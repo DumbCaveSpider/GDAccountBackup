@@ -194,7 +194,8 @@ class $modify(MyGameStatsManager, GameStatsManager)
         }
 
         // make sure the player is on a level
-        if (!PlayLayer::get()) return;
+        if (!PlayLayer::get())
+            return;
         // check if this is the first time setup
         if (!Mod::get()->getSavedValue<bool>("hasRead"))
         {

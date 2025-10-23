@@ -50,8 +50,8 @@ bool BackupPopup::setup()
     sizeLabel->setScale(0.5f);
     m_mainLayer->addChild(sizeLabel, 2);
 
-    // level data size label
-    levelDataSizeLabel = CCLabelBMFont::create("Level Data size: ...", "chatFont.fnt");
+    // Local Levels size label
+    levelDataSizeLabel = CCLabelBMFont::create("Local Levels size: ...", "chatFont.fnt");
     levelDataSizeLabel->setAlignment(kCCTextAlignmentCenter);
     levelDataSizeLabel->setPosition({m_mainLayer->getContentSize().width / 2, m_mainLayer->getContentSize().height - 70});
     levelDataSizeLabel->setScale(0.5f);
@@ -135,22 +135,22 @@ bool BackupPopup::setup()
                             double saveMB = saveBytes / (1024.0 * 1024.0);
                             double levelMB = levelBytes / (1024.0 * 1024.0);
                             sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
-                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
+                            levelDataSizeLabel->setString(fmt::format("Local Levels size: {:.2f} MB", levelMB).c_str());
                         } else {
                             sizeLabel->setString("Account Save data size: N/A");
-                            levelDataSizeLabel->setString("Level data size: N/A");
+                            levelDataSizeLabel->setString("Local Levels size: N/A");
                         }
                     } else {
                         sizeLabel->setString("Account Save data size: N/A");
-                        levelDataSizeLabel->setString("Level data size: N/A");
+                        levelDataSizeLabel->setString("Local Levels size: N/A");
                     }
                 } else {
                     sizeLabel->setString("Account Save data size: N/A");
-                    levelDataSizeLabel->setString("Level data size: N/A");
+                    levelDataSizeLabel->setString("Local Levels size: N/A");
                 }
             } else {
                 sizeLabel->setString("Account Save data size: ...");
-                levelDataSizeLabel->setString("Level data size: ...");
+                levelDataSizeLabel->setString("Local Levels size: ...");
             } });
         sizeListener.setFilter(std::move(req));
     };
@@ -233,9 +233,9 @@ void BackupPopup::onSave(CCObject *sender)
 {
     geode::createQuickPopup(
         "Save Data",
-        "Do you want to <cg>save</c> your account data and local level data to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
+        "Do you want to <cg>save</c> your account data and local Local Levels to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
         "Cancel", "Save",
-    [this, sender](FLAlertLayer *, bool confirmed)
+        [this, sender](FLAlertLayer *, bool confirmed)
         {
             if (!confirmed)
                 return;
@@ -274,8 +274,8 @@ void BackupPopup::onSave(CCObject *sender)
                     if (resp->ok()) {
                         // account save succeeded
                         if (!levelData.empty()) {
-                            // now save level data
-                            statusLabel->setString("Status: Saving level data...");
+                            // now save Local Levels
+                            statusLabel->setString("Status: Saving Local Levels...");
                             matjson::Value bodyLevel = matjson::makeObject({{"accountId", accountId}, {"levelData", levelData}, {"argonToken", token}});
                             auto reqLevel = geode::utils::web::WebRequest()
                                                 .timeout(std::chrono::seconds(30))
@@ -313,22 +313,22 @@ void BackupPopup::onSave(CCObject *sender)
                                                             double saveMB = saveBytes / (1024.0 * 1024.0);
                                                             double levelMB = levelBytes / (1024.0 * 1024.0);
                                                             sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
-                                                            levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
+                                                            levelDataSizeLabel->setString(fmt::format("Local Levels size: {:.2f} MB", levelMB).c_str());
                                                         } else {
                                                             sizeLabel->setString("Account Save data size: N/A");
-                                                            levelDataSizeLabel->setString("Level data size: N/A");
+                                                            levelDataSizeLabel->setString("Local Levels size: N/A");
                                                         }
                                                     } else {
                                                         sizeLabel->setString("Account Save data size: N/A");
-                                                        levelDataSizeLabel->setString("Level data size: N/A");
+                                                        levelDataSizeLabel->setString("Local Levels size: N/A");
                                                     }
                                                 } else {
                                                     sizeLabel->setString("Account Save data size: N/A");
-                                                    levelDataSizeLabel->setString("Level data size: N/A");
+                                                    levelDataSizeLabel->setString("Local Levels size: N/A");
                                                 }
                                             } else {
                                                 sizeLabel->setString("Account Save data size: ...");
-                                                levelDataSizeLabel->setString("Level data size: ...");
+                                                levelDataSizeLabel->setString("Local Levels size: ...");
                                             }
                                         });
                                         sizeListener2.setFilter(std::move(reqSize));
@@ -370,7 +370,7 @@ void BackupPopup::onSave(CCObject *sender)
                             });
                             levelListener.setFilter(std::move(reqLevel));
                         } else {
-                            // no level data to save
+                            // no Local Levels to save
                             Notification::create("Backup saved successfully!", NotificationIcon::Success)->show();
                             if (statusLabel)
                                 statusLabel->setString("Status: Save successful");
@@ -398,22 +398,22 @@ void BackupPopup::onSave(CCObject *sender)
                                                 double saveMB = saveBytes / (1024.0 * 1024.0);
                                                 double levelMB = levelBytes / (1024.0 * 1024.0);
                                                 sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
-                                                levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB", levelMB).c_str());
+                                                levelDataSizeLabel->setString(fmt::format("Local Levels size: {:.2f} MB", levelMB).c_str());
                                             } else {
                                                 sizeLabel->setString("Account Save data size: N/A");
-                                                levelDataSizeLabel->setString("Level data size: N/A");
+                                                levelDataSizeLabel->setString("Local Levels size: N/A");
                                             }
                                         } else {
                                             sizeLabel->setString("Account Save data size: N/A");
-                                            levelDataSizeLabel->setString("Level data size: N/A");
+                                            levelDataSizeLabel->setString("Local Levels size: N/A");
                                         }
                                     } else {
                                         sizeLabel->setString("Account Save data size: N/A");
-                                        levelDataSizeLabel->setString("Level data size: N/A");
+                                        levelDataSizeLabel->setString("Local Levels size: N/A");
                                     }
                                 } else {
                                     sizeLabel->setString("Account Save data size: ...");
-                                    levelDataSizeLabel->setString("Level data size: ...");
+                                    levelDataSizeLabel->setString("Local Levels size: ...");
                                 }
                             });
                             sizeListener3.setFilter(std::move(reqSize));
@@ -545,7 +545,7 @@ void BackupPopup::onDelete(CCObject *sender)
 {
     geode::createQuickPopup(
         "Delete Data",
-        "Do you want to <cr>permanently delete</c> your account data and local level data from the backup server?\n<cy>This action cannot be undone.</c>",
+        "Do you want to <cr>permanently delete</c> your account data and local levels from the backup server?\n<cy>This action cannot be undone.</c>",
         "Cancel", "Delete",
         [this, sender](FLAlertLayer *, bool confirmed)
         {
@@ -609,22 +609,22 @@ void BackupPopup::onDelete(CCObject *sender)
                                                         double saveMB = saveBytes / (1024.0 * 1024.0);
                                                         double levelMB = levelBytes / (1024.0 * 1024.0);
                                                         sizeLabel->setString(fmt::format("Account Save data size: {:.2f} MB", saveMB).c_str());
-                                                        levelDataSizeLabel->setString(fmt::format("Level data size: {:.2f} MB / 32 MB", levelMB).c_str());
+                                                        levelDataSizeLabel->setString(fmt::format("Local Levels size: {:.2f} MB", levelMB).c_str());
                                                     } else {
                                                         sizeLabel->setString("Account Save data size: N/A");
-                                                        levelDataSizeLabel->setString("Level data size: N/A");
+                                                        levelDataSizeLabel->setString("Local Levels size: N/A");
                                                     }
                                                 } else {
                                                     sizeLabel->setString("Account Save data size: N/A");
-                                                    levelDataSizeLabel->setString("Level data size: N/A");
+                                                    levelDataSizeLabel->setString("Local Levels size: N/A");
                                                 }
                                             } else {
                                                 sizeLabel->setString("Account Save data size: N/A");
-                                                levelDataSizeLabel->setString("Level data size: N/A");
+                                                levelDataSizeLabel->setString("Local Levels size: N/A");
                                             }
                                         } else {
                                             sizeLabel->setString("Account Save data size: ...");
-                                            levelDataSizeLabel->setString("Level data size: ...");
+                                            levelDataSizeLabel->setString("Local Levels size: ...");
                                         }
                                     });
                                     sizeListener.setFilter(std::move(reqSize));
@@ -739,7 +739,6 @@ void BackupPopup::onLoadLocalLevels(CCObject *sender)
             listener.setFilter(std::move(req));
         });
 }
-
 
 void BackupPopup::disableButton(CCObject *sender)
 {
