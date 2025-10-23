@@ -233,7 +233,7 @@ void BackupPopup::onSave(CCObject *sender)
 {
     geode::createQuickPopup(
         "Save Data",
-        "Do you want to <cg>save</c> your account data and local Local Levels to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
+        "Do you want to <cg>save</c> your account data and local levels to the backup server?\n<cy>This will overwrite your existing backup saved in the server.</c>",
         "Cancel", "Save",
         [this, sender](FLAlertLayer *, bool confirmed)
         {

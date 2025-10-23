@@ -220,7 +220,7 @@ class $modify(MyGameStatsManager, GameStatsManager)
         }
 
         log::info("starting auto-backup");
-        Notification::create("[Account Backup] Auto-backup in progress", NotificationIcon::Loading)->show();
+        Notification::create("Auto-backup in progress", NotificationIcon::Loading)->show();
         // backup only the account data
         std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
         int accountId = 0;
