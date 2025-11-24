@@ -14,5 +14,3 @@ Are you tired of being stuck on a saving loop from RobTop's cloud save or kept g
 <cy>You can host your own account backup server by checking **[GDAltWebserver](https://github.com/DumbCaveSpider/GDAltWebserver)** which is written in the <cc>Go Programming Language!</c>
 
 ### <cr>Use this backup mod as an alternative option, not as the main backup solution for your account!</c>
-
-![king](arcticwoof.twitch_interactive/king.png)
