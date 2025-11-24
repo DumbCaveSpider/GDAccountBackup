@@ -378,8 +378,9 @@ void BackupPopup::onSave(CCObject *sender) {
                   ->show();
               this->enableButton(sender);
               if (statusLabel)
-                statusLabel->setString("Status: Account Save failed: " +
-                                       std::to_string(resp->code()));
+                statusLabel->setString(("Status: Account Save failed: " +
+                                        std::to_string(resp->code()))
+                                           .c_str());
             }
           } else if (e->isCancelled()) {
             Notification::create("Account Save request was cancelled",
@@ -525,8 +526,9 @@ void BackupPopup::onSaveLocalLevels(CCObject *sender) {
                   ->show();
               this->enableButton(sender);
               if (statusLabel)
-                statusLabel->setString("Status: Local Level Save failed: " +
-                                       std::to_string(resp->code()));
+                statusLabel->setString(("Status: Local Level Save failed: " +
+                                        std::to_string(resp->code()))
+                                           .c_str());
             }
           } else if (e->isCancelled()) {
             Notification::create("Local Level Save request was cancelled",
