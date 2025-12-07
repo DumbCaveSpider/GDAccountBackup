@@ -19,5 +19,4 @@ protected:
 private:
     CCLabelBMFont* m_label = nullptr;
     LoadingSpinner* m_spinner = nullptr;
-    void keyBackClicked();
 };
