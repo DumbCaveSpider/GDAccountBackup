@@ -179,13 +179,13 @@ bool BackupPopup::setup() {
       loadLevelsItem->setPosition({0, startY - 3.0f * verticalSpacing - offsetStartY});
       deleteItem->setPosition({0, startY - 4.0f * verticalSpacing - offsetStartY});
       auto menu = CCMenu::create();
-      menu->addChild(saveAccountItem, 2);
-      menu->addChild(saveLevelsItem, 2);
-      menu->addChild(loadItem, 2);
-      menu->addChild(loadLevelsItem, 2);
-      menu->addChild(deleteItem, 2);
+      menu->addChild(saveAccountItem);
+      menu->addChild(saveLevelsItem);
+      menu->addChild(loadItem);
+      menu->addChild(loadLevelsItem);
+      menu->addChild(deleteItem);
       menu->setPosition({centerX, centerY});
-      m_mainLayer->addChild(menu);
+      m_mainLayer->addChild(menu, 5);
 
       // mod settings button in the top right corner
       auto modMenu = CCMenu::create();
@@ -201,7 +201,7 @@ bool BackupPopup::setup() {
                                       m_mainLayer->getContentSize().height});
       modMenu->addChild(modSettingsButton);
       modMenu->setPosition({0.f, 0.f});
-      m_mainLayer->addChild(modMenu);
+      m_mainLayer->addChild(modMenu, 5);
       // art pretty things
       auto leftArt = CCSprite::createWithSpriteFrameName("rewardCorner_001.png");
       leftArt->setPosition({0.f, 0.f});
@@ -221,7 +221,7 @@ bool BackupPopup::setup() {
       auto showNoticeBtn = CCMenuItemSpriteExtra::create(showNoticeSpr, this, menu_selector(BackupPopup::onShowNotice));
       showNoticeBtn->setPosition({m_mainLayer->getContentSize().width - 25.f,
                                   25.f});
-      modMenu->addChild(showNoticeBtn, 2);
+      modMenu->addChild(showNoticeBtn);
 
       return true;
 }
@@ -353,6 +353,10 @@ void BackupPopup::onSave(CCObject* sender) {
                 });
                 saveListener.setFilter(std::move(reqSave));
           });
+      if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
+            BackupPopup::showNotice();
+            Mod::get()->setSavedValue<bool>("hasRead2", true);
+      }
 }
 
 void BackupPopup::onSaveLocalLevels(CCObject* sender) {
@@ -883,6 +887,7 @@ void BackupPopup::hideLoading() {
       }
 }
 
+// i just looked up how to parse time in c++ on stackoverflow lol
 std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
       if (lastSavedRaw.empty()) {
             return std::string("Last Saved: N/A");
@@ -897,13 +902,12 @@ std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
       // Numeric epoch seconds
       bool allDigits = !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return std::isdigit((unsigned char)c); });
       if (allDigits) {
-            try {
-                  epoch = static_cast<time_t>(std::stoll(s));
-                  parsed = true;
-            } catch (...) {
-                  parsed = false;
-            }
+            epoch = static_cast<time_t>(std::stoll(s));
+            parsed = true;
+      } else {
+            parsed = false;
       }
+
       if (!parsed) {
             // Try ISO 8601 like YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS or with space
             std::regex r(R"(^\s*(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}):(\d{2}))?(?:Z)?\s*$)");
@@ -951,13 +955,6 @@ std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
             }
             return fmt::format("Last Saved: {} ({})", lastSavedRaw, ago);
       } else {
-            // future date
-            days = std::abs(days);
-            if (days == 1) {
-                  ago = "in 1 day";
-            } else {
-                  ago = fmt::format("in {} days", days);
-            }
-            return fmt::format("Last Saved: {} ({})", lastSavedRaw, ago);
+            return fmt::format("Last Saved: {} (today)", lastSavedRaw);  // likely future days is just today
       }
 }

@@ -1,3 +1,9 @@
+
+# v1.0.7
+
+- Fixed the issue with the Z-Ordering on the ui... my bad
+- Fixed issue with the time parsing
+
 # 1.0.6
 
 - Tweak the Buttons' alignment on the UI
