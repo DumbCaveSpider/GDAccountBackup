@@ -8,7 +8,7 @@
 	},
 	"id": "arcticwoof.account_backup",
 	"name": "Account Backup",
-	"version": "v1.0.5",
+	"version": "v1.0.6",
 	"developer": "ArcticWoof",
 	"description": "Alternative account cloud backup option",
 	"resources": {
@@ -22,7 +22,7 @@
 			"name": "Backup Server URL",
 			"description": "The URL to which the backup will be sent. <cr>Don't change this unless you know what you are doing!</c> <cy>Refer to the mod page for more information on setting up your own server.</c>",
 			"default": "https://gdbackup.arcticwoof.xyz",
-			"match": "(http|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])",
+			"match": "^(http|https):\\/\\/((?:[\\w\\-]+(?:\\.[\\w\\-]+)*)|localhost|\\d{1,3}(?:\\.\\d{1,3}){3})(:\\d+)?(\\/.*)?$",
 			"filter": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:.-_/0123456789"
 		},
 		"auto-backup": {
@@ -36,6 +36,6 @@
 		"links": {
 		"source": "https://github.com/DumbCaveSpider/GDAccountBackup",
 		"community": "https://discord.gg/gXcppxTNxC",
-		"homepage": "https://arcticwoof.com.au"
+		"homepage": "https://arcticwoof.xyz"
 	}
 }

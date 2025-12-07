@@ -1,3 +1,9 @@
+# 1.0.6
+
+- Tweak the Buttons' alignment on the UI
+- Added Loading Screen while backup/load is in progress
+- Prevent user from exiting while a backup/load is in progress
+
 # v1.0.5
 
 - Bump to Geode 4.10.0
