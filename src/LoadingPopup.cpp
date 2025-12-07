@@ -50,6 +50,7 @@ void LoadingPopup::hide() {
 }
 
 void LoadingPopup::keyBackClicked() {
-      // do nothing to disable back button
+      Notification::create("ok... did you really mean to back out of loading? welp your game gonna crash soon", NotificationIcon::Warning, 3.f)
+          ->show();
       return;
 }

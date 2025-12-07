@@ -10,7 +10,8 @@ using namespace geode::prelude;
 class BackupPopup : public Popup<> {
      public:
       static BackupPopup* create();
-            static void showNotice();
+      void onShowNotice(CCObject*);
+      static void showNotice();
 
      protected:
       bool setup() override;

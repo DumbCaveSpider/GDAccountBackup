@@ -5,9 +5,9 @@
 #include <Geode/ui/GeodeUI.hpp>
 #include <Geode/utils/web.hpp>
 #include <argon/argon.hpp>
+#include <ctime>
 #include <matjson.hpp>
 #include <regex>
-#include <ctime>
 #include <sstream>
 
 using namespace geode::prelude;
@@ -79,8 +79,8 @@ bool BackupPopup::setup() {
                         if (resp->ok()) {
                               auto strResult = resp->string();
                               if (strResult) {
-                                                      lastSavedLabel->setString(
-                                                            formatLastSavedLabel(strResult.unwrap()).c_str());
+                                    lastSavedLabel->setString(
+                                        formatLastSavedLabel(strResult.unwrap()).c_str());
                               } else {
                                     lastSavedLabel->setString("Last Saved: N/A");
                               }
@@ -216,6 +216,13 @@ bool BackupPopup::setup() {
       rightArt->setFlipX(true);
       m_mainLayer->addChild(rightArt);
 
+      // info button
+      auto showNoticeSpr = CCSprite::createWithSpriteFrameName("GJ_infoIcon_001.png");
+      auto showNoticeBtn = CCMenuItemSpriteExtra::create(showNoticeSpr, this, menu_selector(BackupPopup::onShowNotice));
+      showNoticeBtn->setPosition({m_mainLayer->getContentSize().width - 25.f,
+                                  25.f});
+      modMenu->addChild(showNoticeBtn, 2);
+
       return true;
 }
 
@@ -315,8 +322,8 @@ void BackupPopup::onSave(CCObject* sender) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
                                                         if (strResult) {
-                                                                                            lastSavedLabel->setString(
-                                                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                              lastSavedLabel->setString(
+                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
                                                         } else {
                                                               lastSavedLabel->setString("Last Saved: N/A");
                                                         }
@@ -445,8 +452,8 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
                                                         if (strResult) {
-                                                                                            lastSavedLabel->setString(
-                                                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                              lastSavedLabel->setString(
+                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
                                                         } else {
                                                               lastSavedLabel->setString("Last Saved: N/A");
                                                         }
@@ -480,7 +487,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
       // check if this is the first time setup
       if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
             BackupPopup::showNotice();
-           Mod::get()->setSavedValue<bool>("hasRead2", true);
+            Mod::get()->setSavedValue<bool>("hasRead2", true);
       }
 }
 
@@ -650,8 +657,8 @@ void BackupPopup::onDelete(CCObject* sender) {
                                                               if (resp->ok()) {
                                                                     auto strResult = resp->string();
                                                                     if (strResult) {
-                                                                                                              lastSavedLabel->setString(
-                                                                                                                    formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                                          lastSavedLabel->setString(
+                                                                              formatLastSavedLabel(strResult.unwrap()).c_str());
                                                                     } else {
                                                                           lastSavedLabel->setString("Last Saved: N/A");
                                                                     }
@@ -803,6 +810,10 @@ void BackupPopup::enableButton(CCObject* sender) {
       }
 }
 
+void BackupPopup::onShowNotice(CCObject* sender) {
+      BackupPopup::showNotice();  // for the main.cpp ig
+}
+
 void BackupPopup::showNotice() {
       geode::MDPopup::create(
           "PLEASE READ",
@@ -831,7 +842,7 @@ void BackupPopup::showNotice() {
           "and uninstall the mod. You can delete your data from the server at "
           "any time by clicking the <cr>DELETE</c> button at any <cg>time</c>.</c>\n\n"
           "If you need support, join <cf>ArcticWoof's Discord Server</c> located at the Account Backup mod page on Geode.\n\n"
-          "<cc>This popup will only appear once! You can read the terms at "
+          "<cc>You can read this notice by clicking the info button at the Account Backup Popup! You can read the terms at "
           "<cg>https://arcticwoof.xyz/privacy</cg></c>",
           "OK")
           ->show();
