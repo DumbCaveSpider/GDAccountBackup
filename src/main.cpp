@@ -100,18 +100,87 @@ class $modify(MyAccountLayer, AccountLayer) {
                       authListener.bind([buttonSender](WebTask::Event* e) {
                             if (WebResponse* resp = e->getValue()) {
                                   if (resp->ok()) {
-                                        log::info("Authentication successful");
-                                        // open the backup popup
-                                        auto popup = BackupPopup::create();
-                                        if (popup)
-                                              popup->show();
-                                        // restore UI in any case
-                                        if (auto button =
-                                                static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
-                                              button->setEnabled(true);
-                                              button->setOpacity(255);
-                                              if (auto spinner = button->getChildByTag(1000)) {
-                                                    spinner->removeFromParent();
+                                        auto strResult = resp->string();
+                                        if (strResult) {
+                                              const std::string& str = strResult.unwrap();
+                                              auto parsed = matjson::Value::parse(str);
+                                              if (parsed) {
+                                                    auto obj = parsed.unwrap();
+                                                    if (auto authStatus = obj.asInt()) {
+                                                          int status = authStatus.unwrap();
+                                                          if (status == 1) {
+                                                                log::info("Authentication successful");
+                                                                // open the backup popup
+                                                                auto popup = BackupPopup::create();
+                                                                if (popup)
+                                                                      popup->show();
+                                                                // restore UI in any case
+                                                                if (auto button =
+                                                                        static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
+                                                                      button->setEnabled(true);
+                                                                      button->setOpacity(255);
+                                                                      if (auto spinner = button->getChildByTag(1000)) {
+                                                                            spinner->removeFromParent();
+                                                                      }
+                                                                }
+                                                          } else {
+                                                                log::warn("Authentication failed: response was not 1");
+                                                                Notification::create("Authentication failed",
+                                                                                     NotificationIcon::Error)
+                                                                    ->show();
+                                                                // re-enable the button and remove the spinner
+                                                                if (auto button =
+                                                                        static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
+                                                                      button->setEnabled(true);
+                                                                      button->setOpacity(255);
+                                                                      if (auto spinner = button->getChildByTag(1000)) {
+                                                                            spinner->removeFromParent();
+                                                                      }
+                                                                }
+                                                          }
+                                                    } else {
+                                                          log::warn("Authentication failed: could not parse response as integer");
+                                                          Notification::create("Authentication failed: invalid response",
+                                                                               NotificationIcon::Error)
+                                                              ->show();
+                                                          // re-enable the button and remove the spinner
+                                                          if (auto button =
+                                                                  static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
+                                                                button->setEnabled(true);
+                                                                button->setOpacity(255);
+                                                                if (auto spinner = button->getChildByTag(1000)) {
+                                                                      spinner->removeFromParent();
+                                                                }
+                                                          }
+                                                    }
+                                              } else {
+                                                    log::warn("Authentication failed: could not parse response JSON");
+                                                    Notification::create("Authentication failed: invalid response",
+                                                                         NotificationIcon::Error)
+                                                        ->show();
+                                                    // re-enable the button and remove the spinner
+                                                    if (auto button =
+                                                            static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
+                                                          button->setEnabled(true);
+                                                          button->setOpacity(255);
+                                                          if (auto spinner = button->getChildByTag(1000)) {
+                                                                spinner->removeFromParent();
+                                                          }
+                                                    }
+                                              }
+                                        } else {
+                                              log::warn("Authentication failed: could not get response body");
+                                              Notification::create("Authentication failed: invalid response",
+                                                                   NotificationIcon::Error)
+                                                  ->show();
+                                              // re-enable the button and remove the spinner
+                                              if (auto button =
+                                                      static_cast<CCMenuItemSpriteExtra*>(buttonSender)) {
+                                                    button->setEnabled(true);
+                                                    button->setOpacity(255);
+                                                    if (auto spinner = button->getChildByTag(1000)) {
+                                                          spinner->removeFromParent();
+                                                    }
                                               }
                                         }
                                   } else {

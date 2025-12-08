@@ -36,7 +36,7 @@ class BackupPopup : public Popup<> {
       void setCombinedSizeNA();
       void setCombinedSizeLoading();
       void setLastSavedFromCheckResponse(const std::string& jsonStr);
-      void setFreeSpaceAndTotal(int freePercentage, long long totalSize);
+      void setFreeSpaceAndTotal(int freePercentage, long long totalSize, long long maxDataSize);
       void setFreeSpaceNA();
       void fetchAndUpdateStatus();
       // Loading overlay
@@ -44,4 +44,5 @@ class BackupPopup : public Popup<> {
       void showLoading(const std::string& msg);
 
       void hideLoading();
+      std::string parseResponseError(const std::string& responseBody);
 };

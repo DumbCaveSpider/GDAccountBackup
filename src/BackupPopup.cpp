@@ -1,8 +1,6 @@
 #include "BackupPopup.hpp"
 
 #include <Geode/Geode.hpp>
-#include <Geode/binding/GameManager.hpp>
-#include <Geode/binding/GameToolbox.hpp>
 #include <Geode/ui/GeodeUI.hpp>
 #include <Geode/utils/general.hpp>
 #include <Geode/utils/web.hpp>
@@ -46,7 +44,7 @@ bool BackupPopup::setup() {
       m_mainLayer->addChild(label, 2);
 
       // combined account and local levels size label
-      sizeLabel = CCLabelBMFont::create("Account & Local Level Data Size: ...", "chatFont.fnt");
+      sizeLabel = CCLabelBMFont::create("Account Size: ... MB / Local Levels Size: ... MB", "chatFont.fnt");
       sizeLabel->setAlignment(kCCTextAlignmentCenter);
       sizeLabel->setPosition({m_mainLayer->getContentSize().width / 2,
                               m_mainLayer->getContentSize().height - 50});
@@ -63,9 +61,8 @@ bool BackupPopup::setup() {
 
       // free space / total size
       freeSpaceLabel = CCLabelBMFont::create("Free: ...", "bigFont.fnt");
-      freeSpaceLabel->setAnchorPoint({0.f, 0.f});
       freeSpaceLabel->setAlignment(kCCTextAlignmentLeft);
-      freeSpaceLabel->setPosition({10.f, 10.f});
+      freeSpaceLabel->setPosition({m_mainLayer->getContentSize().width / 2, 15.f});
       freeSpaceLabel->setScale(0.3f);
       m_mainLayer->addChild(freeSpaceLabel, 2);
       fetchAndUpdateStatus();
@@ -197,8 +194,9 @@ void BackupPopup::onSave(CCObject* sender) {
                                   this->enableButton(sender);
                                   this->fetchAndUpdateStatus();
                             } else {
-                                  Notification::create("Account Save failed: " +
-                                                           std::to_string(resp->code()),
+                                  auto errorBody = resp->string();
+                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
+                                  Notification::create("Account Save failed: " + errorMsg,
                                                        NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
@@ -267,8 +265,9 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                   this->enableButton(sender);
                                   this->fetchAndUpdateStatus();
                             } else {
-                                  Notification::create("Local Level Save failed: " +
-                                                           std::to_string(resp->code()),
+                                  auto errorBody = resp->string();
+                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
+                                  Notification::create("Local Level Save failed: " + errorMsg,
                                                        NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
@@ -340,8 +339,9 @@ void BackupPopup::onLoad(CCObject* sender) {
                                         }
                                   }
                             } else {
-                                  Notification::create("Load failed: " +
-                                                           std::to_string(resp->code()),
+                                  auto errorBody = resp->string();
+                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
+                                  Notification::create("Load failed: " + errorMsg,
                                                        NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
@@ -412,8 +412,9 @@ void BackupPopup::onDelete(CCObject* sender) {
                                         }
                                   }
                             } else {
-                                  Notification::create("Delete failed: " +
-                                                           std::to_string(resp->code()),
+                                  auto errorBody = resp->string();
+                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
+                                  Notification::create("Delete failed: " + errorMsg,
                                                        NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
@@ -487,8 +488,9 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                                         this->enableButton(sender);
                                   }
                             } else {
-                                  Notification::create("Load local levels failed: " +
-                                                           std::to_string(resp->code()),
+                                  auto errorBody = resp->string();
+                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
+                                  Notification::create("Load local levels failed: " + errorMsg,
                                                        NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
@@ -592,17 +594,17 @@ void BackupPopup::setCombinedSize(long long saveBytes, long long levelBytes) {
       if (!sizeLabel) return;
       double saveMB = saveBytes / (1024.0 * 1024.0);
       double levelMB = levelBytes / (1024.0 * 1024.0);
-      sizeLabel->setString(fmt::format("Account and Local Level Data Size: {:.2f} MB / {:.2f} MB", saveMB, levelMB).c_str());
+      sizeLabel->setString(fmt::format("Account Size: {:.2f} MB / Local Levels Size: {:.2f} MB", saveMB, levelMB).c_str());
 }
 
 void BackupPopup::setCombinedSizeNA() {
       if (!sizeLabel) return;
-      sizeLabel->setString("Account and Local Level Data Size: N/A");
+      sizeLabel->setString("Account Size: N/A / Local Levels Size: N/A");
 }
 
 void BackupPopup::setCombinedSizeLoading() {
       if (!sizeLabel) return;
-      sizeLabel->setString("Account and Local Level Data Size: ...");
+      sizeLabel->setString("Account Size: ... MB / Local Levels Size: ... MB");
 }
 
 void BackupPopup::onModSettings(CCObject*) { openSettingsPopup(getMod()); }
@@ -685,12 +687,14 @@ void BackupPopup::fetchAndUpdateStatus() {
                                     long long levelBytes = 0;
                                     int freePercentage = 0;
                                     long long totalSize = 0;
+                                    long long maxDataSize = 0;
                                     if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
                                     if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
                                     if (auto fsp = obj["freeSpacePercentage"].asInt()) freePercentage = fsp.unwrap();
                                     if (auto ts = obj["totalSize"].asInt()) totalSize = ts.unwrap();
+                                    if (auto mds = obj["maxDataSize"].asInt()) maxDataSize = mds.unwrap();
                                     setCombinedSize(saveBytes, levelBytes);
-                                    setFreeSpaceAndTotal(freePercentage, totalSize);
+                                    setFreeSpaceAndTotal(freePercentage, totalSize, maxDataSize);
                                     setLastSavedFromCheckResponse(str);
                               } else {
                                     setCombinedSizeNA();
@@ -716,13 +720,32 @@ void BackupPopup::fetchAndUpdateStatus() {
       statusListener.setFilter(std::move(req));
 }
 
-void BackupPopup::setFreeSpaceAndTotal(int freePercentage, long long totalSize) {
+void BackupPopup::setFreeSpaceAndTotal(int freePercentage, long long totalSize, long long maxDataSize) {
       if (!freeSpaceLabel) return;
       double totalMB = totalSize / (1024.0 * 1024.0);
-      freeSpaceLabel->setString(fmt::format("Free: {}% — Total: {:.2f} MB", freePercentage, totalMB).c_str());
+      double maxMB = maxDataSize / (1024.0 * 1024.0);
+      freeSpaceLabel->setString(fmt::format("Free: {}% - Total: {:.2f} MB / Max: {:.2f} MB", freePercentage, totalMB, maxMB).c_str());
 }
 
 void BackupPopup::setFreeSpaceNA() {
       if (!freeSpaceLabel) return;
       freeSpaceLabel->setString("Free: N/A");
+}
+
+std::string BackupPopup::parseResponseError(const std::string& responseBody) {
+      if (responseBody.empty()) {
+            return "Unknown error";
+      }
+      
+      auto parsed = matjson::Value::parse(responseBody);
+      if (!parsed) {
+            return "Unknown error";
+      }
+      
+      auto obj = parsed.unwrap();
+      if (auto err = obj["error"].asString()) {
+            return err.unwrap();
+      }
+      
+      return "Unknown error";
 }
