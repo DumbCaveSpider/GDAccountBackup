@@ -2,13 +2,15 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/binding/GameManager.hpp>
+#include <Geode/binding/GameToolbox.hpp>
 #include <Geode/ui/GeodeUI.hpp>
+#include <Geode/utils/general.hpp>
 #include <Geode/utils/web.hpp>
 #include <argon/argon.hpp>
 #include <ctime>
 #include <matjson.hpp>
-#include <regex>
 #include <sstream>
+#include <string>
 
 using namespace geode::prelude;
 
@@ -29,7 +31,7 @@ bool BackupPopup::setup() {
             accountId = acct->m_accountID;
       }
 
-      // try to get username (visible outside the if block)
+      // try to get username
       gd::string name;
       if (auto glm = GameLevelManager::sharedState()) {
             name = glm->tryGetUsername(accountId);
@@ -58,91 +60,15 @@ bool BackupPopup::setup() {
                                    m_mainLayer->getContentSize().height - 60});
       lastSavedLabel->setScale(0.5f);
       m_mainLayer->addChild(lastSavedLabel, 2);
-      auto updateLastSaved = [this]() {
-            int accountId = 0;
-            if (auto acct = GJAccountManager::get()) {
-                  accountId = acct->m_accountID;
-            }
-            std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
-            matjson::Value body =
-                matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
-            std::string backupUrl =
-                Mod::get()->getSettingValue<std::string>("backup-url");
-                  auto req = web::WebRequest()
-                                 .timeout(std::chrono::seconds(30))
-                                 .header("Content-Type", "application/json")
-                                 .bodyJSON(body)
-                                 .post(backupUrl + "/check");
-            static geode::EventListener<web::WebTask> lastSavedListener;
-            lastSavedListener.bind([this](web::WebTask::Event* e) {
-                  if (auto* resp = e->getValue()) {
-                        if (resp->ok()) {
-                              auto strResult = resp->string();
-                              if (strResult) {
-                                    this->setLastSavedFromCheckResponse(strResult.unwrap());
-                              } else {
-                                    lastSavedLabel->setString("Last Saved: N/A");
-                              }
-                        } else {
-                              lastSavedLabel->setString("Last Saved: N/A");
-                        }
-                  } else {
-                        lastSavedLabel->setString("Last Saved: ...");
-                  }
-            });
-            lastSavedListener.setFilter(std::move(req));
-      };
-      updateLastSaved();
 
-      auto updateSize = [this]() {
-            int accountId = 0;
-            if (auto acct = GJAccountManager::get()) {
-                  accountId = acct->m_accountID;
-            }
-            std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
-            matjson::Value body =
-                matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
-            std::string backupUrl =
-                Mod::get()->getSettingValue<std::string>("backup-url");
-            auto req = web::WebRequest()
-                           .timeout(std::chrono::seconds(30))
-                           .header("Content-Type", "application/json")
-                           .bodyJSON(body)
-                           .post(backupUrl + "/check");
-            static geode::EventListener<web::WebTask> sizeListener;
-            sizeListener.bind([this](web::WebTask::Event* e) {
-                  if (auto* resp = e->getValue()) {
-                        if (resp->ok()) {
-                              auto strResult = resp->string();
-                              if (strResult) {
-                                    const std::string& str = strResult.unwrap();
-                                    // expecting JSON: {"saveData":12345,"levelData":67890}
-                                    auto parsed = matjson::Value::parse(str);
-                                    if (parsed) {
-                                          auto obj = parsed.unwrap();
-                                          long long saveBytes = 0;
-                                          long long levelBytes = 0;
-                                          if (auto s = obj["saveData"].asInt())
-                                                saveBytes = s.unwrap();
-                                          if (auto l = obj["levelData"].asInt())
-                                                levelBytes = l.unwrap();
-                                          setCombinedSize(saveBytes, levelBytes);
-                                    } else {
-                                          setCombinedSizeNA();
-                                    }
-                              } else {
-                                    setCombinedSizeNA();
-                              }
-                        } else {
-                              setCombinedSizeNA();
-                        }
-                  } else {
-                        setCombinedSizeLoading();
-                  }
-            });
-            sizeListener.setFilter(std::move(req));
-      };
-      updateSize();
+      // free space / total size
+      freeSpaceLabel = CCLabelBMFont::create("Free: ...", "bigFont.fnt");
+      freeSpaceLabel->setAnchorPoint({0.f, 0.f});
+      freeSpaceLabel->setAlignment(kCCTextAlignmentLeft);
+      freeSpaceLabel->setPosition({10.f, 10.f});
+      freeSpaceLabel->setScale(0.3f);
+      m_mainLayer->addChild(freeSpaceLabel, 2);
+      fetchAndUpdateStatus();
 
       float centerX = m_mainLayer->getContentSize().width / 2;
       float centerY = m_mainLayer->getContentSize().height / 2 - 20.f;
@@ -269,70 +195,7 @@ void BackupPopup::onSave(CCObject* sender) {
                                       ->show();
                                   this->hideLoading();
                                   this->enableButton(sender);
-                                  // refresh size
-                                  matjson::Value body = matjson::makeObject(
-                                      {{"accountId", accountId}, {"argonToken", token}});
-                                  auto reqSize = web::WebRequest()
-                                                     .timeout(std::chrono::seconds(30))
-                                                     .bodyJSON(body)
-                                                     .post(backupUrl + "/check");
-                                  static geode::EventListener<web::WebTask>
-                                      sizeListener2;
-                                  sizeListener2.bind([this](web::WebTask::Event* e2) {
-                                        if (auto* resp = e2->getValue()) {
-                                              if (resp->ok()) {
-                                                    auto strResult = resp->string();
-                                                    if (strResult) {
-                                                          const std::string& str = strResult.unwrap();
-                                                          auto parsed = matjson::Value::parse(str);
-                                                          if (parsed) {
-                                                                auto obj = parsed.unwrap();
-                                                                long long saveBytes = 0;
-                                                                long long levelBytes = 0;
-                                                                if (auto s = obj["saveData"].asInt())
-                                                                      saveBytes = s.unwrap();
-                                                                if (auto l = obj["levelData"].asInt())
-                                                                      levelBytes = l.unwrap();
-                                                                setCombinedSize(saveBytes, levelBytes);
-                                                          } else {
-                                                                setCombinedSizeNA();
-                                                          }
-                                                    } else {
-                                                          setCombinedSizeNA();
-                                                    }
-                                              } else {
-                                                    setCombinedSizeNA();
-                                              }
-                                        } else {
-                                              setCombinedSizeLoading();
-                                        }
-                                  });
-                                  sizeListener2.setFilter(std::move(reqSize));
-                                  // refresh last saved
-                                  auto reqLast = web::WebRequest()
-                                                     .timeout(std::chrono::seconds(30))
-                                                     .bodyJSON(body)
-                                                     .post(backupUrl + "/check");
-                                  static geode::EventListener<web::WebTask>
-                                      lastSavedListener2;
-                                  lastSavedListener2.bind(
-                                      [this](web::WebTask::Event* e3) {
-                                            if (auto* resp = e3->getValue()) {
-                                                  if (resp->ok()) {
-                                                        auto strResult = resp->string();
-                                                        if (strResult) {
-                                                              this->setLastSavedFromCheckResponse(strResult.unwrap());
-                                                        } else {
-                                                              lastSavedLabel->setString("Last Saved: N/A");
-                                                        }
-                                                  } else {
-                                                        lastSavedLabel->setString("Last Saved: N/A");
-                                                  }
-                                            } else {
-                                                  lastSavedLabel->setString("Last Saved: ...");
-                                            }
-                                      });
-                                  lastSavedListener2.setFilter(std::move(reqLast));
+                                  this->fetchAndUpdateStatus();
                             } else {
                                   Notification::create("Account Save failed: " +
                                                            std::to_string(resp->code()),
@@ -402,70 +265,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                       ->show();
                                   this->hideLoading();
                                   this->enableButton(sender);
-                                  // refresh size
-                                  matjson::Value body = matjson::makeObject(
-                                      {{"accountId", accountId}, {"argonToken", token}});
-                                  auto reqSize = web::WebRequest()
-                                                     .timeout(std::chrono::seconds(30))
-                                                     .bodyJSON(body)
-                                                     .post(backupUrl + "/check");
-                                  static geode::EventListener<web::WebTask>
-                                      sizeListener2;
-                                  sizeListener2.bind([this](web::WebTask::Event* e2) {
-                                        if (auto* resp = e2->getValue()) {
-                                              if (resp->ok()) {
-                                                    auto strResult = resp->string();
-                                                    if (strResult) {
-                                                          const std::string& str = strResult.unwrap();
-                                                          auto parsed = matjson::Value::parse(str);
-                                                          if (parsed) {
-                                                                auto obj = parsed.unwrap();
-                                                                long long saveBytes = 0;
-                                                                long long levelBytes = 0;
-                                                                if (auto s = obj["saveData"].asInt())
-                                                                      saveBytes = s.unwrap();
-                                                                if (auto l = obj["levelData"].asInt())
-                                                                      levelBytes = l.unwrap();
-                                                                setCombinedSize(saveBytes, levelBytes);
-                                                          } else {
-                                                                setCombinedSizeNA();
-                                                          }
-                                                    } else {
-                                                          setCombinedSizeNA();
-                                                    }
-                                              } else {
-                                                    setCombinedSizeNA();
-                                              }
-                                        } else {
-                                              setCombinedSizeLoading();
-                                        }
-                                  });
-                                  sizeListener2.setFilter(std::move(reqSize));
-                                  // refresh last saved
-                                  auto reqLast = web::WebRequest()
-                                                     .timeout(std::chrono::seconds(30))
-                                                     .bodyJSON(body)
-                                                     .post(backupUrl + "/check");
-                                  static geode::EventListener<web::WebTask>
-                                      lastSavedListener2;
-                                  lastSavedListener2.bind(
-                                      [this](web::WebTask::Event* e3) {
-                                            if (auto* resp = e3->getValue()) {
-                                                  if (resp->ok()) {
-                                                        auto strResult = resp->string();
-                                                        if (strResult) {
-                                                              this->setLastSavedFromCheckResponse(strResult.unwrap());
-                                                        } else {
-                                                              lastSavedLabel->setString("Last Saved: N/A");
-                                                        }
-                                                  } else {
-                                                        lastSavedLabel->setString("Last Saved: N/A");
-                                                  }
-                                            } else {
-                                                  lastSavedLabel->setString("Last Saved: ...");
-                                            }
-                                      });
-                                  lastSavedListener2.setFilter(std::move(reqLast));
+                                  this->fetchAndUpdateStatus();
                             } else {
                                   Notification::create("Local Level Save failed: " +
                                                            std::to_string(resp->code()),
@@ -494,7 +294,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
 
 void BackupPopup::onLoad(CCObject* sender) {
       geode::createQuickPopup(
-          "Load Data",
+          "Load Account Data",
           "Do you want to <cg>download</c> your account data from the backup "
           "server?\n<cy>This will merge your current account data.</c>",
           "Cancel", "Load", [this, sender](FLAlertLayer*, bool confirmed) {
@@ -607,69 +407,8 @@ void BackupPopup::onDelete(CCObject* sender) {
                                                   {{"accountId", accountId}, {"argonToken", token}});
                                               std::string backupUrl =
                                                   Mod::get()->getSettingValue<std::string>("backup-url");
-                                              // Update size
-                                              auto reqSize = web::WebRequest()
-                                                                 .timeout(std::chrono::seconds(30))
-                                                                 .bodyJSON(body)
-                                                                 .post(backupUrl + "/check");
-                                              static geode::EventListener<web::WebTask>
-                                                  sizeListener;
-                                              sizeListener.bind([this](
-                                                                    web::WebTask::Event* e) {
-                                                    if (auto* resp = e->getValue()) {
-                                                          if (resp->ok()) {
-                                                                auto strResult = resp->string();
-                                                                if (strResult) {
-                                                                      const std::string& str = strResult.unwrap();
-                                                                      auto parsed = matjson::Value::parse(str);
-                                                                      if (parsed) {
-                                                                            auto obj = parsed.unwrap();
-                                                                            long long saveBytes = 0;
-                                                                            long long levelBytes = 0;
-                                                                            if (auto s = obj["saveData"].asInt())
-                                                                                  saveBytes = s.unwrap();
-                                                                            if (auto l = obj["levelData"].asInt())
-                                                                                  levelBytes = l.unwrap();
-                                                                            setCombinedSize(saveBytes, levelBytes);
-                                                                      } else {
-                                                                            setCombinedSizeNA();
-                                                                      }
-                                                                } else {
-                                                                      setCombinedSizeNA();
-                                                                }
-                                                          } else {
-                                                                setCombinedSizeNA();
-                                                          }
-                                                    } else {
-                                                          setCombinedSizeLoading();
-                                                    }
-                                              });
-                                              sizeListener.setFilter(std::move(reqSize));
-                                              // Update last saved
-                                              auto reqLast = web::WebRequest()
-                                                                 .timeout(std::chrono::seconds(30))
-                                                                 .bodyJSON(body)
-                                                                 .post(backupUrl + "/check");
-                                              static geode::EventListener<web::WebTask>
-                                                  lastSavedListener;
-                                              lastSavedListener.bind(
-                                                  [this](web::WebTask::Event* e) {
-                                                        if (auto* resp = e->getValue()) {
-                                                              if (resp->ok()) {
-                                                                    auto strResult = resp->string();
-                                                                    if (strResult) {
-                                                                          this->setLastSavedFromCheckResponse(strResult.unwrap());
-                                                                    } else {
-                                                                          lastSavedLabel->setString("Last Saved: N/A");
-                                                                    }
-                                                              } else {
-                                                                    lastSavedLabel->setString("Last Saved: N/A");
-                                                              }
-                                                        } else {
-                                                              lastSavedLabel->setString("Last Saved: ...");
-                                                        }
-                                                  });
-                                              lastSavedListener.setFilter(std::move(reqLast));
+                                              // fetch and update both size and last saved once
+                                              this->fetchAndUpdateStatus();
                                         }
                                   }
                             } else {
@@ -831,6 +570,7 @@ void BackupPopup::showNotice() {
           "if this happened.\n\n"
           "<cy>6.</c> Your backup will be <cr>automatically deleted after 60 days (2 months)</c> from your last successful save. "
           "Be sure to <cg>save your data regularly</c>.\n\n"
+          "<cy>7.</c> If you are using <cf>ArcticWoof's Backup Server</c>, the maximum storage is <cg>**32MB**</c> for both <ca>account data and local levels combined</c>.\n\n"
           "### The following data will be sent to the backup server:\n\n"
           "<cl>- Your Geometry Dash Account ID</c>\n\n"
           "<cl>- Your Argon Token</c>\n\n"
@@ -898,9 +638,16 @@ void BackupPopup::setLastSavedFromCheckResponse(const std::string& jsonStr) {
       if (auto ls = obj["lastSaved"].asString()) {
             auto lastSaved = ls.unwrap();
             if (auto lsr = obj["lastSavedRelative"].asString()) {
-                  lastSavedLabel->setString(fmt::format("Last Saved: {} ({})", lastSaved, lsr.unwrap()).c_str());
+                  lastSavedLabel->setString(fmt::format("Last Saved: {}", lsr.unwrap()).c_str());
             } else {
-                  lastSavedLabel->setString(fmt::format("Last Saved: {}", lastSaved).c_str());
+                  auto tsRes = numFromString<long long>(lastSaved);
+                  if (!tsRes) {
+                        lastSavedLabel->setString("Last Saved: N/A");
+                  } else {
+                        long long tsVal = tsRes.unwrap();
+                        auto friendly = GameToolbox::timestampToHumanReadable(static_cast<time_t>(tsVal));
+                        lastSavedLabel->setString(fmt::format("Last Saved: {}", friendly).c_str());
+                  }
             }
             return;
       }
@@ -909,4 +656,73 @@ void BackupPopup::setLastSavedFromCheckResponse(const std::string& jsonStr) {
             return;
       }
       lastSavedLabel->setString("Last Saved: N/A");
+}
+
+void BackupPopup::fetchAndUpdateStatus() {
+      int accountId = 0;
+      if (auto acct = GJAccountManager::get()) {
+            accountId = acct->m_accountID;
+      }
+      std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
+      matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+      std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
+      auto req = web::WebRequest()
+                     .timeout(std::chrono::seconds(30))
+                     .header("Content-Type", "application/json")
+                     .bodyJSON(body)
+                     .post(backupUrl + "/check");
+      static geode::EventListener<web::WebTask> statusListener;
+      statusListener.bind([this](web::WebTask::Event* e) {
+            if (auto* resp = e->getValue()) {
+                  if (resp->ok()) {
+                        auto strResult = resp->string();
+                        if (strResult) {
+                              const std::string& str = strResult.unwrap();
+                              auto parsed = matjson::Value::parse(str);
+                              if (parsed) {
+                                    auto obj = parsed.unwrap();
+                                    long long saveBytes = 0;
+                                    long long levelBytes = 0;
+                                    int freePercentage = 0;
+                                    long long totalSize = 0;
+                                    if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
+                                    if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
+                                    if (auto fsp = obj["freeSpacePercentage"].asInt()) freePercentage = fsp.unwrap();
+                                    if (auto ts = obj["totalSize"].asInt()) totalSize = ts.unwrap();
+                                    setCombinedSize(saveBytes, levelBytes);
+                                    setFreeSpaceAndTotal(freePercentage, totalSize);
+                                    setLastSavedFromCheckResponse(str);
+                              } else {
+                                    setCombinedSizeNA();
+                                    setFreeSpaceNA();
+                                    if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
+                              }
+                        } else {
+                              setCombinedSizeNA();
+                              setFreeSpaceNA();
+                              if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
+                        }
+                  } else {
+                        setCombinedSizeNA();
+                        setFreeSpaceNA();
+                        if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
+                  }
+            } else {
+                  setCombinedSizeLoading();
+                  freeSpaceLabel->setString("Free: ...");
+                  if (lastSavedLabel) lastSavedLabel->setString("Last Saved: ...");
+            }
+      });
+      statusListener.setFilter(std::move(req));
+}
+
+void BackupPopup::setFreeSpaceAndTotal(int freePercentage, long long totalSize) {
+      if (!freeSpaceLabel) return;
+      double totalMB = totalSize / (1024.0 * 1024.0);
+      freeSpaceLabel->setString(fmt::format("Free: {}% — Total: {:.2f} MB", freePercentage, totalMB).c_str());
+}
+
+void BackupPopup::setFreeSpaceNA() {
+      if (!freeSpaceLabel) return;
+      freeSpaceLabel->setString("Free: N/A");
 }

@@ -29,12 +29,16 @@ class BackupPopup : public Popup<> {
 
       CCLabelBMFont* sizeLabel = nullptr;
       CCLabelBMFont* lastSavedLabel = nullptr;
+      CCLabelBMFont* freeSpaceLabel = nullptr;
 
       // helper methods to update the combined size label
       void setCombinedSize(long long saveBytes, long long levelBytes);
       void setCombinedSizeNA();
       void setCombinedSizeLoading();
       void setLastSavedFromCheckResponse(const std::string& jsonStr);
+      void setFreeSpaceAndTotal(int freePercentage, long long totalSize);
+      void setFreeSpaceNA();
+      void fetchAndUpdateStatus();
       // Loading overlay
       LoadingPopup* m_loadingPopup = nullptr;
       void showLoading(const std::string& msg);

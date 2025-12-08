@@ -1,3 +1,8 @@
+# v1.0.9
+
+- Refactored the check status endpoint for consistency
+- Added display for total and free backup storage space
+- Improved error responses for backup and load failures
 
 # v1.0.8
 
