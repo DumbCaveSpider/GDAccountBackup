@@ -736,16 +736,16 @@ std::string BackupPopup::parseResponseError(const std::string& responseBody) {
       if (responseBody.empty()) {
             return "Unknown error";
       }
-      
+
       auto parsed = matjson::Value::parse(responseBody);
       if (!parsed) {
             return "Unknown error";
       }
-      
+
       auto obj = parsed.unwrap();
       if (auto err = obj["error"].asString()) {
             return err.unwrap();
       }
-      
+
       return "Unknown error";
 }
