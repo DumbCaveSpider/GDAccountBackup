@@ -34,8 +34,7 @@ class BackupPopup : public Popup<> {
       void setCombinedSize(long long saveBytes, long long levelBytes);
       void setCombinedSizeNA();
       void setCombinedSizeLoading();
-      // helper to format the last saved label with "days ago"
-      std::string formatLastSavedLabel(const std::string& lastSavedRaw);
+      void setLastSavedFromCheckResponse(const std::string& jsonStr);
       // Loading overlay
       LoadingPopup* m_loadingPopup = nullptr;
       void showLoading(const std::string& msg);

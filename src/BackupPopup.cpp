@@ -68,19 +68,18 @@ bool BackupPopup::setup() {
                 matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
             std::string backupUrl =
                 Mod::get()->getSettingValue<std::string>("backup-url");
-            auto req = web::WebRequest()
-                           .timeout(std::chrono::seconds(30))
-                           .header("Content-Type", "application/json")
-                           .bodyJSON(body)
-                           .post(backupUrl + "/lastsaved");
+                  auto req = web::WebRequest()
+                                 .timeout(std::chrono::seconds(30))
+                                 .header("Content-Type", "application/json")
+                                 .bodyJSON(body)
+                                 .post(backupUrl + "/check");
             static geode::EventListener<web::WebTask> lastSavedListener;
             lastSavedListener.bind([this](web::WebTask::Event* e) {
                   if (auto* resp = e->getValue()) {
                         if (resp->ok()) {
                               auto strResult = resp->string();
                               if (strResult) {
-                                    lastSavedLabel->setString(
-                                        formatLastSavedLabel(strResult.unwrap()).c_str());
+                                    this->setLastSavedFromCheckResponse(strResult.unwrap());
                               } else {
                                     lastSavedLabel->setString("Last Saved: N/A");
                               }
@@ -313,7 +312,7 @@ void BackupPopup::onSave(CCObject* sender) {
                                   auto reqLast = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
-                                                     .post(backupUrl + "/lastsaved");
+                                                     .post(backupUrl + "/check");
                                   static geode::EventListener<web::WebTask>
                                       lastSavedListener2;
                                   lastSavedListener2.bind(
@@ -322,8 +321,7 @@ void BackupPopup::onSave(CCObject* sender) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
                                                         if (strResult) {
-                                                              lastSavedLabel->setString(
-                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                              this->setLastSavedFromCheckResponse(strResult.unwrap());
                                                         } else {
                                                               lastSavedLabel->setString("Last Saved: N/A");
                                                         }
@@ -447,7 +445,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                   auto reqLast = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
-                                                     .post(backupUrl + "/lastsaved");
+                                                     .post(backupUrl + "/check");
                                   static geode::EventListener<web::WebTask>
                                       lastSavedListener2;
                                   lastSavedListener2.bind(
@@ -456,8 +454,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
                                                         if (strResult) {
-                                                              lastSavedLabel->setString(
-                                                                  formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                              this->setLastSavedFromCheckResponse(strResult.unwrap());
                                                         } else {
                                                               lastSavedLabel->setString("Last Saved: N/A");
                                                         }
@@ -652,7 +649,7 @@ void BackupPopup::onDelete(CCObject* sender) {
                                               auto reqLast = web::WebRequest()
                                                                  .timeout(std::chrono::seconds(30))
                                                                  .bodyJSON(body)
-                                                                 .post(backupUrl + "/lastsaved");
+                                                                 .post(backupUrl + "/check");
                                               static geode::EventListener<web::WebTask>
                                                   lastSavedListener;
                                               lastSavedListener.bind(
@@ -661,8 +658,7 @@ void BackupPopup::onDelete(CCObject* sender) {
                                                               if (resp->ok()) {
                                                                     auto strResult = resp->string();
                                                                     if (strResult) {
-                                                                          lastSavedLabel->setString(
-                                                                              formatLastSavedLabel(strResult.unwrap()).c_str());
+                                                                          this->setLastSavedFromCheckResponse(strResult.unwrap());
                                                                     } else {
                                                                           lastSavedLabel->setString("Last Saved: N/A");
                                                                     }
@@ -887,87 +883,30 @@ void BackupPopup::hideLoading() {
       }
 }
 
-// i just looked up how to parse time in c++ on stackoverflow lol
-std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
-      if (lastSavedRaw.empty()) {
-            return std::string("Last Saved: N/A");
+void BackupPopup::setLastSavedFromCheckResponse(const std::string& jsonStr) {
+      if (!lastSavedLabel) return;
+      if (jsonStr.empty()) {
+            lastSavedLabel->setString("Last Saved: N/A");
+            return;
       }
-      // Trim whitespace
-      auto s = lastSavedRaw;
-      while (!s.empty() && std::isspace((unsigned char)s.front())) s.erase(s.begin());
-      while (!s.empty() && std::isspace((unsigned char)s.back())) s.pop_back();
-
-      time_t epoch = 0;
-      bool parsed = false;
-      // Numeric epoch seconds
-      bool allDigits = !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return std::isdigit((unsigned char)c); });
-      if (allDigits) {
-            if (auto r = numFromString<long long>(s)) {
-                  epoch = static_cast<time_t>(r.unwrap());
-                  parsed = true;
-            } else {
-                  parsed = false;
-            }
-      } else {
-            parsed = false;
-      }
-
+      auto parsed = matjson::Value::parse(jsonStr);
       if (!parsed) {
-            // Try ISO 8601 like YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS or with space
-            std::regex r(R"(^\s*(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}):(\d{2}))?(?:Z)?\s*$)");
-            std::smatch m;
-            if (std::regex_search(s, m, r)) {
-                  int Y = 0;
-                  int Mo = 0;
-                  int D = 0;
-                  if (auto ry = numFromString<int>(m[1].str())) Y = ry.unwrap();
-                  if (auto rmo = numFromString<int>(m[2].str())) Mo = rmo.unwrap();
-                  if (auto rd = numFromString<int>(m[3].str())) D = rd.unwrap();
-                  int hh = 0, mm = 0, ss = 0;
-                  if (m[4].matched) {
-                        if (auto rh = numFromString<int>(m[4].str())) hh = rh.unwrap();
-                  }
-                  if (m[5].matched) {
-                        if (auto rmi = numFromString<int>(m[5].str())) mm = rmi.unwrap();
-                  }
-                  if (m[6].matched) {
-                        if (auto rs = numFromString<int>(m[6].str())) ss = rs.unwrap();
-                  }
-                  std::tm tm{};
-                  tm.tm_year = Y - 1900;
-                  tm.tm_mon = Mo - 1;
-                  tm.tm_mday = D;
-                  tm.tm_hour = hh;
-                  tm.tm_min = mm;
-                  tm.tm_sec = ss;
-                  tm.tm_isdst = -1;
-#if defined(_MSC_VER)
-                  epoch = _mkgmtime(&tm);
-#elif defined(__unix__)
-                  epoch = timegm(&tm);
-#else
-                  epoch = mktime(&tm);
-#endif
-                  parsed = true;
-            }
+            lastSavedLabel->setString("Last Saved: N/A");
+            return;
       }
-      if (!parsed) {
-            return fmt::format("Last Saved: {}", lastSavedRaw);
-      }
-      time_t now = std::time(nullptr);
-      double diff = std::difftime(now, epoch);
-      long days = static_cast<long>(std::llround(diff / 86400.0));
-      std::string ago;
-      if (diff >= 0) {
-            if (days == 0) {
-                  ago = "today";
-            } else if (days == 1) {
-                  ago = "1 day ago";
+      auto obj = parsed.unwrap();
+      if (auto ls = obj["lastSaved"].asString()) {
+            auto lastSaved = ls.unwrap();
+            if (auto lsr = obj["lastSavedRelative"].asString()) {
+                  lastSavedLabel->setString(fmt::format("Last Saved: {} ({})", lastSaved, lsr.unwrap()).c_str());
             } else {
-                  ago = fmt::format("{} days ago", days);
+                  lastSavedLabel->setString(fmt::format("Last Saved: {}", lastSaved).c_str());
             }
-            return fmt::format("Last Saved: {} ({})", lastSavedRaw, ago);
-      } else {
-            return fmt::format("Last Saved: {} (today)", lastSavedRaw);  // likely future days is just today
+            return;
       }
+      if (auto rel = obj["lastSavedRelative"].asString()) {
+            lastSavedLabel->setString(fmt::format("Last Saved: {}", rel.unwrap()).c_str());
+            return;
+      }
+      lastSavedLabel->setString("Last Saved: N/A");
 }
