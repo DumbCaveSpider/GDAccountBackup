@@ -68,13 +68,13 @@ bool BackupPopup::setup() {
                 matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
             std::string backupUrl =
                 Mod::get()->getSettingValue<std::string>("backup-url");
-            auto req = geode::utils::web::WebRequest()
+            auto req = web::WebRequest()
                            .timeout(std::chrono::seconds(30))
                            .header("Content-Type", "application/json")
                            .bodyJSON(body)
                            .post(backupUrl + "/lastsaved");
-            static geode::EventListener<geode::utils::web::WebTask> lastSavedListener;
-            lastSavedListener.bind([this](geode::utils::web::WebTask::Event* e) {
+            static geode::EventListener<web::WebTask> lastSavedListener;
+            lastSavedListener.bind([this](web::WebTask::Event* e) {
                   if (auto* resp = e->getValue()) {
                         if (resp->ok()) {
                               auto strResult = resp->string();
@@ -105,13 +105,13 @@ bool BackupPopup::setup() {
                 matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
             std::string backupUrl =
                 Mod::get()->getSettingValue<std::string>("backup-url");
-            auto req = geode::utils::web::WebRequest()
+            auto req = web::WebRequest()
                            .timeout(std::chrono::seconds(30))
                            .header("Content-Type", "application/json")
                            .bodyJSON(body)
                            .post(backupUrl + "/check");
-            static geode::EventListener<geode::utils::web::WebTask> sizeListener;
-            sizeListener.bind([this](geode::utils::web::WebTask::Event* e) {
+            static geode::EventListener<web::WebTask> sizeListener;
+            sizeListener.bind([this](web::WebTask::Event* e) {
                   if (auto* resp = e->getValue()) {
                         if (resp->ok()) {
                               auto strResult = resp->string();
@@ -255,14 +255,14 @@ void BackupPopup::onSave(CCObject* sender) {
                 matjson::Value bodySave = matjson::makeObject({{"accountId", accountId},
                                                                {"saveData", saveData},
                                                                {"argonToken", token}});
-                auto reqSave = geode::utils::web::WebRequest()
+                auto reqSave = web::WebRequest()
                                    .timeout(std::chrono::seconds(30))
                                    .bodyJSON(bodySave)
                                    .post(backupUrl + "/save");
 
-                static geode::EventListener<geode::utils::web::WebTask> saveListener;
+                static geode::EventListener<web::WebTask> saveListener;
                 saveListener.bind([this, sender, accountId, token,
-                                   backupUrl](geode::utils::web::WebTask::Event* e) {
+                                   backupUrl](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   Notification::create("Account data saved successfully!",
@@ -273,13 +273,13 @@ void BackupPopup::onSave(CCObject* sender) {
                                   // refresh size
                                   matjson::Value body = matjson::makeObject(
                                       {{"accountId", accountId}, {"argonToken", token}});
-                                  auto reqSize = geode::utils::web::WebRequest()
+                                  auto reqSize = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
                                                      .post(backupUrl + "/check");
-                                  static geode::EventListener<geode::utils::web::WebTask>
+                                  static geode::EventListener<web::WebTask>
                                       sizeListener2;
-                                  sizeListener2.bind([this](geode::utils::web::WebTask::Event* e2) {
+                                  sizeListener2.bind([this](web::WebTask::Event* e2) {
                                         if (auto* resp = e2->getValue()) {
                                               if (resp->ok()) {
                                                     auto strResult = resp->string();
@@ -310,14 +310,14 @@ void BackupPopup::onSave(CCObject* sender) {
                                   });
                                   sizeListener2.setFilter(std::move(reqSize));
                                   // refresh last saved
-                                  auto reqLast = geode::utils::web::WebRequest()
+                                  auto reqLast = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
                                                      .post(backupUrl + "/lastsaved");
-                                  static geode::EventListener<geode::utils::web::WebTask>
+                                  static geode::EventListener<web::WebTask>
                                       lastSavedListener2;
                                   lastSavedListener2.bind(
-                                      [this](geode::utils::web::WebTask::Event* e3) {
+                                      [this](web::WebTask::Event* e3) {
                                             if (auto* resp = e3->getValue()) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
@@ -389,14 +389,14 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                     matjson::makeObject({{"accountId", accountId},
                                          {"levelData", levelData},
                                          {"argonToken", token}});
-                auto reqLevel = geode::utils::web::WebRequest()
+                auto reqLevel = web::WebRequest()
                                     .timeout(std::chrono::seconds(30))
                                     .bodyJSON(bodyLevel)
                                     .post(backupUrl + "/save");
 
-                static geode::EventListener<geode::utils::web::WebTask> levelListener;
+                static geode::EventListener<web::WebTask> levelListener;
                 levelListener.bind([this, sender, accountId, token,
-                                    backupUrl](geode::utils::web::WebTask::Event* e) {
+                                    backupUrl](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   Notification::create("Local Levels saved successfully!",
@@ -407,13 +407,13 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                   // refresh size
                                   matjson::Value body = matjson::makeObject(
                                       {{"accountId", accountId}, {"argonToken", token}});
-                                  auto reqSize = geode::utils::web::WebRequest()
+                                  auto reqSize = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
                                                      .post(backupUrl + "/check");
-                                  static geode::EventListener<geode::utils::web::WebTask>
+                                  static geode::EventListener<web::WebTask>
                                       sizeListener2;
-                                  sizeListener2.bind([this](geode::utils::web::WebTask::Event* e2) {
+                                  sizeListener2.bind([this](web::WebTask::Event* e2) {
                                         if (auto* resp = e2->getValue()) {
                                               if (resp->ok()) {
                                                     auto strResult = resp->string();
@@ -444,14 +444,14 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                   });
                                   sizeListener2.setFilter(std::move(reqSize));
                                   // refresh last saved
-                                  auto reqLast = geode::utils::web::WebRequest()
+                                  auto reqLast = web::WebRequest()
                                                      .timeout(std::chrono::seconds(30))
                                                      .bodyJSON(body)
                                                      .post(backupUrl + "/lastsaved");
-                                  static geode::EventListener<geode::utils::web::WebTask>
+                                  static geode::EventListener<web::WebTask>
                                       lastSavedListener2;
                                   lastSavedListener2.bind(
-                                      [this](geode::utils::web::WebTask::Event* e3) {
+                                      [this](web::WebTask::Event* e3) {
                                             if (auto* resp = e3->getValue()) {
                                                   if (resp->ok()) {
                                                         auto strResult = resp->string();
@@ -516,12 +516,12 @@ void BackupPopup::onLoad(CCObject* sender) {
                     {{"accountId", accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
-                auto req = geode::utils::web::WebRequest()
+                auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/load");
-                static geode::EventListener<geode::utils::web::WebTask> listener;
-                listener.bind([this, sender](geode::utils::web::WebTask::Event* e) {
+                static geode::EventListener<web::WebTask> listener;
+                listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   if (auto gm = GameManager::sharedState()) {
@@ -583,12 +583,12 @@ void BackupPopup::onDelete(CCObject* sender) {
                     {{"accountId", accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
-                auto req = geode::utils::web::WebRequest()
+                auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/delete");
-                static geode::EventListener<geode::utils::web::WebTask> listener;
-                listener.bind([this, sender](geode::utils::web::WebTask::Event* e) {
+                static geode::EventListener<web::WebTask> listener;
+                listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   Notification::create("Backup deleted successfully!",
@@ -611,14 +611,14 @@ void BackupPopup::onDelete(CCObject* sender) {
                                               std::string backupUrl =
                                                   Mod::get()->getSettingValue<std::string>("backup-url");
                                               // Update size
-                                              auto reqSize = geode::utils::web::WebRequest()
+                                              auto reqSize = web::WebRequest()
                                                                  .timeout(std::chrono::seconds(30))
                                                                  .bodyJSON(body)
                                                                  .post(backupUrl + "/check");
-                                              static geode::EventListener<geode::utils::web::WebTask>
+                                              static geode::EventListener<web::WebTask>
                                                   sizeListener;
                                               sizeListener.bind([this](
-                                                                    geode::utils::web::WebTask::Event* e) {
+                                                                    web::WebTask::Event* e) {
                                                     if (auto* resp = e->getValue()) {
                                                           if (resp->ok()) {
                                                                 auto strResult = resp->string();
@@ -649,14 +649,14 @@ void BackupPopup::onDelete(CCObject* sender) {
                                               });
                                               sizeListener.setFilter(std::move(reqSize));
                                               // Update last saved
-                                              auto reqLast = geode::utils::web::WebRequest()
+                                              auto reqLast = web::WebRequest()
                                                                  .timeout(std::chrono::seconds(30))
                                                                  .bodyJSON(body)
                                                                  .post(backupUrl + "/lastsaved");
-                                              static geode::EventListener<geode::utils::web::WebTask>
+                                              static geode::EventListener<web::WebTask>
                                                   lastSavedListener;
                                               lastSavedListener.bind(
-                                                  [this](geode::utils::web::WebTask::Event* e) {
+                                                  [this](web::WebTask::Event* e) {
                                                         if (auto* resp = e->getValue()) {
                                                               if (resp->ok()) {
                                                                     auto strResult = resp->string();
@@ -717,12 +717,12 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                     {{"accountId", accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
-                auto req = geode::utils::web::WebRequest()
+                auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/loadlevel");
-                static geode::EventListener<geode::utils::web::WebTask> listener;
-                listener.bind([this, sender](geode::utils::web::WebTask::Event* e) {
+                static geode::EventListener<web::WebTask> listener;
+                listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   auto result = resp->string();
@@ -902,8 +902,12 @@ std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
       // Numeric epoch seconds
       bool allDigits = !s.empty() && std::all_of(s.begin(), s.end(), [](char c) { return std::isdigit((unsigned char)c); });
       if (allDigits) {
-            epoch = static_cast<time_t>(std::stoll(s));
-            parsed = true;
+            if (auto r = numFromString<long long>(s)) {
+                  epoch = static_cast<time_t>(r.unwrap());
+                  parsed = true;
+            } else {
+                  parsed = false;
+            }
       } else {
             parsed = false;
       }
@@ -913,13 +917,22 @@ std::string BackupPopup::formatLastSavedLabel(const std::string& lastSavedRaw) {
             std::regex r(R"(^\s*(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}):(\d{2}))?(?:Z)?\s*$)");
             std::smatch m;
             if (std::regex_search(s, m, r)) {
-                  int Y = std::stoi(m[1].str());
-                  int Mo = std::stoi(m[2].str());
-                  int D = std::stoi(m[3].str());
+                  int Y = 0;
+                  int Mo = 0;
+                  int D = 0;
+                  if (auto ry = numFromString<int>(m[1].str())) Y = ry.unwrap();
+                  if (auto rmo = numFromString<int>(m[2].str())) Mo = rmo.unwrap();
+                  if (auto rd = numFromString<int>(m[3].str())) D = rd.unwrap();
                   int hh = 0, mm = 0, ss = 0;
-                  if (m[4].matched) hh = std::stoi(m[4].str());
-                  if (m[5].matched) mm = std::stoi(m[5].str());
-                  if (m[6].matched) ss = std::stoi(m[6].str());
+                  if (m[4].matched) {
+                        if (auto rh = numFromString<int>(m[4].str())) hh = rh.unwrap();
+                  }
+                  if (m[5].matched) {
+                        if (auto rmi = numFromString<int>(m[5].str())) mm = rmi.unwrap();
+                  }
+                  if (m[6].matched) {
+                        if (auto rs = numFromString<int>(m[6].str())) ss = rs.unwrap();
+                  }
                   std::tm tm{};
                   tm.tm_year = Y - 1900;
                   tm.tm_mon = Mo - 1;

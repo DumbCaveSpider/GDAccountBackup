@@ -1,4 +1,8 @@
 
+# v1.0.8
+
+- Minor changes
+
 # v1.0.7
 
 - Fixed the issue with the Z-Ordering on the ui... my bad
