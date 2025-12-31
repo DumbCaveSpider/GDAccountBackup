@@ -1,3 +1,7 @@
+# v1.1.1
+
+- Minor tweaks
+
 # v1.1.0
 
 - Added **Account Backup Extra** membership option for extra max storage
