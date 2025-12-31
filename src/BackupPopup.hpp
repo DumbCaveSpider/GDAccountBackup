@@ -12,6 +12,7 @@ class BackupPopup : public Popup<> {
       static BackupPopup* create();
       void onShowNotice(CCObject*);
       static void showNotice();
+      void refreshStatus();
 
      protected:
       bool setup() override;
@@ -23,6 +24,7 @@ class BackupPopup : public Popup<> {
       void onLoadLocalLevels(CCObject*);
       void onDelete(CCObject*);
       void onModSettings(CCObject*);
+      void onMembershipPopup(CCObject*);
 
       void disableButton(CCObject* sender);
       void enableButton(CCObject* sender);
@@ -30,6 +32,7 @@ class BackupPopup : public Popup<> {
       CCLabelBMFont* sizeLabel = nullptr;
       CCLabelBMFont* lastSavedLabel = nullptr;
       CCLabelBMFont* freeSpaceLabel = nullptr;
+      CCLabelBMFont* subscriberLabel = nullptr;
 
       // helper methods to update the combined size label
       void setCombinedSize(long long saveBytes, long long levelBytes);

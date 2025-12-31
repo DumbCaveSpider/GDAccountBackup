@@ -1,3 +1,8 @@
+# v1.1.0
+
+- Added **Account Backup Extra** membership option for extra max storage
+- Tweaked the Buttons internally
+
 # v1.0.9
 
 - Refactored the check status endpoint for consistency

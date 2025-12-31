@@ -10,6 +10,8 @@
 #include <sstream>
 #include <string>
 
+#include "MembershipPopup.hpp"
+
 using namespace geode::prelude;
 
 BackupPopup* BackupPopup::create() {
@@ -62,15 +64,20 @@ bool BackupPopup::setup() {
       // free space / total size
       freeSpaceLabel = CCLabelBMFont::create("Free: ...", "bigFont.fnt");
       freeSpaceLabel->setAlignment(kCCTextAlignmentLeft);
-      freeSpaceLabel->setPosition({m_mainLayer->getContentSize().width / 2, 15.f});
+      freeSpaceLabel->setPosition({m_mainLayer->getContentSize().width / 2, 12.f});
       freeSpaceLabel->setScale(0.3f);
       m_mainLayer->addChild(freeSpaceLabel, 2);
+
+      subscriberLabel = CCLabelBMFont::create("Account Backup Extra Subscriber!", "goldFont.fnt");
+      subscriberLabel->setAlignment(kCCTextAlignmentCenter);
+      subscriberLabel->setPosition({m_mainLayer->getContentSize().width / 2, freeSpaceLabel->getPositionY() + 10.f});
+      subscriberLabel->setScale(0.35f);
+      subscriberLabel->setVisible(false);
+      m_mainLayer->addChild(subscriberLabel, 2);
+
       fetchAndUpdateStatus();
 
-      float centerX = m_mainLayer->getContentSize().width / 2;
-      float centerY = m_mainLayer->getContentSize().height / 2 - 20.f;
       float verticalSpacing = 36.f;
-
       const int numButtons = 4;
 
       auto saveAccountBtn = ButtonSprite::create("Save Account Data", 250.f, true, "goldFont.fnt", "GJ_button_01.png", 0.f, 1.f);
@@ -92,25 +99,29 @@ bool BackupPopup::setup() {
       auto deleteBtn = ButtonSprite::create("Delete Backups", 250.f, true, "goldFont.fnt", "GJ_button_06.png", 0.f, 1.f);
       auto deleteItem = CCMenuItemSpriteExtra::create(
           deleteBtn, this, menu_selector(BackupPopup::onDelete));
-      float startY = verticalSpacing * ((numButtons - 1));
-      float offsetStartY = 40.f;
+      float startY = verticalSpacing * ((numButtons - 1)) + 80;
 
-      saveAccountItem->setPosition({0, startY - offsetStartY});
-      saveLevelsItem->setPosition({0, startY - 1.0f * verticalSpacing - offsetStartY});
-      loadItem->setPosition({0, startY - 2.0f * verticalSpacing - offsetStartY});
-      loadLevelsItem->setPosition({0, startY - 3.0f * verticalSpacing - offsetStartY});
-      deleteItem->setPosition({0, startY - 4.0f * verticalSpacing - offsetStartY});
-      auto menu = CCMenu::create();
-      menu->addChild(saveAccountItem);
-      menu->addChild(saveLevelsItem);
-      menu->addChild(loadItem);
-      menu->addChild(loadLevelsItem);
-      menu->addChild(deleteItem);
-      menu->setPosition({centerX, centerY});
-      m_mainLayer->addChild(menu, 5);
+      // membership button popup only for main backup server
+      if (Mod::get()->getSettingValue<std::string>("backup-url") == "https://gdbackup.arcticwoof.xyz") {
+            auto membershipSpr = CCSprite::create("subIcon.png"_spr);
+            auto membershipBtnSpr = CircleButtonSprite::create(membershipSpr, CircleBaseColor::Pink, CircleBaseSize::Small);
+            auto membershipBtn = CCMenuItemSpriteExtra::create(
+                membershipBtnSpr, this, menu_selector(BackupPopup::onMembershipPopup));
+            membershipBtn->setPosition({30.f, 30.f});
+            m_buttonMenu->addChild(membershipBtn);
+      }
 
-      // mod settings button in the top right corner
-      auto modMenu = CCMenu::create();
+      saveAccountItem->setPosition({m_mainLayer->getContentSize().width / 2, startY});
+      saveLevelsItem->setPosition({m_mainLayer->getContentSize().width / 2, startY - 1.0f * verticalSpacing});
+      loadItem->setPosition({m_mainLayer->getContentSize().width / 2, startY - 2.0f * verticalSpacing});
+      loadLevelsItem->setPosition({m_mainLayer->getContentSize().width / 2, startY - 3.0f * verticalSpacing});
+      deleteItem->setPosition({m_mainLayer->getContentSize().width / 2, startY - 4.0f * verticalSpacing});
+      m_buttonMenu->addChild(saveAccountItem);
+      m_buttonMenu->addChild(saveLevelsItem);
+      m_buttonMenu->addChild(loadItem);
+      m_buttonMenu->addChild(loadLevelsItem);
+      m_buttonMenu->addChild(deleteItem);
+
       auto modSettingsBtnSprite = CircleButtonSprite::createWithSpriteFrameName(
           // @geode-ignore(unknown-resource)
           "geode.loader/settings.png", 1.f, CircleBaseColor::Green,
@@ -121,9 +132,7 @@ bool BackupPopup::setup() {
           modSettingsBtnSprite, this, menu_selector(BackupPopup::onModSettings));
       modSettingsButton->setPosition({m_mainLayer->getContentSize().width,
                                       m_mainLayer->getContentSize().height});
-      modMenu->addChild(modSettingsButton);
-      modMenu->setPosition({0.f, 0.f});
-      m_mainLayer->addChild(modMenu, 5);
+      m_buttonMenu->addChild(modSettingsButton);
       // art pretty things
       auto leftArt = CCSprite::createWithSpriteFrameName("rewardCorner_001.png");
       leftArt->setPosition({0.f, 0.f});
@@ -143,9 +152,14 @@ bool BackupPopup::setup() {
       auto showNoticeBtn = CCMenuItemSpriteExtra::create(showNoticeSpr, this, menu_selector(BackupPopup::onShowNotice));
       showNoticeBtn->setPosition({m_mainLayer->getContentSize().width - 25.f,
                                   25.f});
-      modMenu->addChild(showNoticeBtn);
-
+      m_buttonMenu->addChild(showNoticeBtn);
       return true;
+}
+
+void BackupPopup::onMembershipPopup(CCObject* sender) {
+      auto popup = MembershipPopup::create();
+      if (popup)
+            popup->show();
 }
 
 void BackupPopup::onSave(CCObject* sender) {
@@ -572,7 +586,7 @@ void BackupPopup::showNotice() {
           "if this happened.\n\n"
           "<cy>6.</c> Your backup will be <cr>automatically deleted after 60 days (2 months)</c> from your last successful save. "
           "Be sure to <cg>save your data regularly</c>.\n\n"
-          "<cy>7.</c> If you are using <cf>ArcticWoof's Backup Server</c>, the maximum storage is <cg>**32MB**</c> for both <ca>account data and local levels combined</c>.\n\n"
+          "<cy>7.</c> If you are using <cf>ArcticWoof's Backup Server</c>, the maximum storage is <cg>**32MB**</c> for both <ca>account data and local levels combined</c>. Unless you have the subscription which the max is <cg>512MB</c>.\n\n"
           "### The following data will be sent to the backup server:\n\n"
           "<cl>- Your Geometry Dash Account ID</c>\n\n"
           "<cl>- Your Argon Token</c>\n\n"
@@ -693,10 +707,19 @@ void BackupPopup::fetchAndUpdateStatus() {
                                     if (auto fsp = obj["freeSpacePercentage"].asInt()) freePercentage = fsp.unwrap();
                                     if (auto ts = obj["totalSize"].asInt()) totalSize = ts.unwrap();
                                     if (auto mds = obj["maxDataSize"].asInt()) maxDataSize = mds.unwrap();
+
+                                    // subscriber is a boolean from /check
+                                    bool isSubscriber = false;
+                                    if (auto sb = obj["subscriber"].asBool()) {
+                                          isSubscriber = sb.unwrap();
+                                    }
+                                    if (subscriberLabel) subscriberLabel->setVisible(isSubscriber);
+
                                     setCombinedSize(saveBytes, levelBytes);
                                     setFreeSpaceAndTotal(freePercentage, totalSize, maxDataSize);
                                     setLastSavedFromCheckResponse(str);
                               } else {
+                                    if (subscriberLabel) subscriberLabel->setVisible(false);
                                     setCombinedSizeNA();
                                     setFreeSpaceNA();
                                     if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
@@ -707,17 +730,24 @@ void BackupPopup::fetchAndUpdateStatus() {
                               if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
                         }
                   } else {
+                        if (subscriberLabel) subscriberLabel->setVisible(false);
                         setCombinedSizeNA();
                         setFreeSpaceNA();
                         if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
                   }
             } else {
+                  if (subscriberLabel) subscriberLabel->setVisible(false);
                   setCombinedSizeLoading();
                   freeSpaceLabel->setString("Free: ...");
                   if (lastSavedLabel) lastSavedLabel->setString("Last Saved: ...");
             }
       });
       statusListener.setFilter(std::move(req));
+}
+
+// public ts
+void BackupPopup::refreshStatus() {
+      this->fetchAndUpdateStatus();
 }
 
 void BackupPopup::setFreeSpaceAndTotal(int freePercentage, long long totalSize, long long maxDataSize) {
