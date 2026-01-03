@@ -1,3 +1,7 @@
+# v1.1.2
+
+- Minor tweaks relating to cleanup of event listeners
+
 # v1.1.1
 
 - Minor tweaks

@@ -48,4 +48,7 @@ class BackupPopup : public Popup<> {
 
       void hideLoading();
       std::string parseResponseError(const std::string& responseBody);
+
+     private:
+      geode::EventListener<web::WebTask> m_listener;
 };

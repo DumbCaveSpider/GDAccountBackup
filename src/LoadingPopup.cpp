@@ -35,6 +35,7 @@ bool LoadingPopup::initWithMessage(const std::string& message) {
       this->addChild(m_label, 2);
 
       this->setKeyboardEnabled(false);
+      this->setKeypadEnabled(false);
 
       return true;
 }

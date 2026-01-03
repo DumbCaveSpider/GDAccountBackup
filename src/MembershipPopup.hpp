@@ -13,4 +13,5 @@ class MembershipPopup : public Popup<> {
 
      private:
       TextInput* m_emailInput = nullptr;
+      geode::EventListener<web::WebTask> m_listener;
 };

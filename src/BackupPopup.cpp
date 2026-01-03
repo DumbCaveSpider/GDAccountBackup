@@ -196,8 +196,7 @@ void BackupPopup::onSave(CCObject* sender) {
                                    .bodyJSON(bodySave)
                                    .post(backupUrl + "/save");
 
-                static geode::EventListener<web::WebTask> saveListener;
-                saveListener.bind([this, sender, accountId, token,
+                m_listener.bind([this, sender, accountId, token,
                                    backupUrl](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
@@ -224,7 +223,7 @@ void BackupPopup::onSave(CCObject* sender) {
                             this->enableButton(sender);
                       }
                 });
-                saveListener.setFilter(std::move(reqSave));
+                m_listener.setFilter(std::move(reqSave));
           });
       if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
             BackupPopup::showNotice();
@@ -267,8 +266,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                     .bodyJSON(bodyLevel)
                                     .post(backupUrl + "/save");
 
-                static geode::EventListener<web::WebTask> levelListener;
-                levelListener.bind([this, sender, accountId, token,
+                m_listener.bind([this, sender, accountId, token,
                                     backupUrl](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
@@ -296,7 +294,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                             this->enableButton(sender);
                       }
                 });
-                levelListener.setFilter(std::move(reqLevel));
+                m_listener.setFilter(std::move(reqLevel));
           });
       // check if this is the first time setup
       if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
@@ -330,8 +328,7 @@ void BackupPopup::onLoad(CCObject* sender) {
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/load");
-                static geode::EventListener<web::WebTask> listener;
-                listener.bind([this, sender](web::WebTask::Event* e) {
+                m_listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   if (auto gm = GameManager::sharedState()) {
@@ -369,7 +366,7 @@ void BackupPopup::onLoad(CCObject* sender) {
                             this->enableButton(sender);
                       }
                 });
-                listener.setFilter(std::move(req));
+                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -398,8 +395,7 @@ void BackupPopup::onDelete(CCObject* sender) {
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/delete");
-                static geode::EventListener<web::WebTask> listener;
-                listener.bind([this, sender](web::WebTask::Event* e) {
+                m_listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   Notification::create("Backup deleted successfully!",
@@ -442,7 +438,7 @@ void BackupPopup::onDelete(CCObject* sender) {
                             this->enableButton(sender);
                       }
                 });
-                listener.setFilter(std::move(req));
+                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -471,8 +467,7 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/loadlevel");
-                static geode::EventListener<web::WebTask> listener;
-                listener.bind([this, sender](web::WebTask::Event* e) {
+                m_listener.bind([this, sender](web::WebTask::Event* e) {
                       if (auto* resp = e->getValue()) {
                             if (resp->ok()) {
                                   auto result = resp->string();
@@ -519,7 +514,7 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                             this->enableButton(sender);
                       }
                 });
-                listener.setFilter(std::move(req));
+                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -687,8 +682,7 @@ void BackupPopup::fetchAndUpdateStatus() {
                      .header("Content-Type", "application/json")
                      .bodyJSON(body)
                      .post(backupUrl + "/check");
-      static geode::EventListener<web::WebTask> statusListener;
-      statusListener.bind([this](web::WebTask::Event* e) {
+      m_listener.bind([this](web::WebTask::Event* e) {
             if (auto* resp = e->getValue()) {
                   if (resp->ok()) {
                         auto strResult = resp->string();
@@ -742,7 +736,7 @@ void BackupPopup::fetchAndUpdateStatus() {
                   if (lastSavedLabel) lastSavedLabel->setString("Last Saved: ...");
             }
       });
-      statusListener.setFilter(std::move(req));
+      m_listener.setFilter(std::move(req));
 }
 
 // public ts

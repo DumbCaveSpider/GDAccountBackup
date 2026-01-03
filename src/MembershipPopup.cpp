@@ -83,13 +83,12 @@ void MembershipPopup::onApplyMembership(CCObject* sender) {
                      .bodyJSON(body)
                      .post(backupUrl + "/membership");
 
-      static geode::EventListener<web::WebTask> listener;
-      listener.bind([this](web::WebTask::Event* e) {
+      m_listener.bind([this](web::WebTask::Event* e) {
             if (auto* resp = e->getValue()) {
                   if (resp->ok()) {
                         Notification::create("Subscribed Successfully!", NotificationIcon::Success)
                             ->show();
-                        this->removeFromParentAndCleanup(true);
+                        this->onClose(nullptr);
 
                         // try to find a visible BackupPopup and refresh it
                         if (auto scene = CCDirector::sharedDirector()->getRunningScene()) {
@@ -122,5 +121,5 @@ void MembershipPopup::onApplyMembership(CCObject* sender) {
                       ->show();
             }
       });
-      listener.setFilter(std::move(req));
+      m_listener.setFilter(std::move(req));
 }
