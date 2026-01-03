@@ -1,15 +1,12 @@
-# v1.1.2
-
-- Minor tweaks relating to cleanup of event listeners
-
 # v1.1.1
 
-- Minor tweaks
+- Minor tweaks relating to cleanup of event listeners
 
 # v1.1.0
 
 - Added **Account Backup Extra** membership option for extra max storage
 - Tweaked the Buttons internally
+- Minor tweaks
 
 # v1.0.9
 
