@@ -2,16 +2,16 @@
 
 using namespace geode::prelude;
 
-class MembershipPopup : public Popup<> {
+class MembershipPopup : public Popup {
      public:
       static MembershipPopup* create();
 
      protected:
-      bool setup() override;
+      bool init() override;
       void onKofi(CCObject* sender);
       void onApplyMembership(CCObject* sender);
 
      private:
       TextInput* m_emailInput = nullptr;
-      geode::EventListener<web::WebTask> m_listener;
+      async::TaskHolder<web::WebResponse> m_listener;
 };

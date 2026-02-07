@@ -8,7 +8,7 @@ LoadingPopup* LoadingPopup::create(const std::string& message) {
             layer->autorelease();
             return layer;
       }
-      CC_SAFE_DELETE(layer);
+      delete layer;
       return nullptr;
 }
 

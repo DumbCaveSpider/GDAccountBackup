@@ -4,10 +4,10 @@
 #include <Geode/ui/GeodeUI.hpp>
 #include <Geode/utils/general.hpp>
 #include <Geode/utils/web.hpp>
+#include <Geode/utils/async.hpp>
 #include <argon/argon.hpp>
 #include <ctime>
 #include <matjson.hpp>
-#include <sstream>
 #include <string>
 
 #include "MembershipPopup.hpp"
@@ -16,28 +16,21 @@ using namespace geode::prelude;
 
 BackupPopup* BackupPopup::create() {
       auto ret = new BackupPopup();
-      if (ret && ret->initAnchored(380.f, 275.f, "GJ_square02.png")) {
+      if (ret && ret->init()) {
             ret->autorelease();
             return ret;
       }
-      CC_SAFE_DELETE(ret);
+      delete ret;
       return nullptr;
 }
 
-bool BackupPopup::setup() {
+bool BackupPopup::init() {
+      if (!Popup::init(380.f, 275.f, "GJ_square02.png"))
+            return false;
       setTitle("Account Alternative Backup");
-      int accountId = 0;
-      if (auto acct = GJAccountManager::get()) {
-            accountId = acct->m_accountID;
-      }
+      auto accountData = argon::getGameAccountData();
 
-      // try to get username
-      gd::string name;
-      if (auto glm = GameLevelManager::sharedState()) {
-            name = glm->tryGetUsername(accountId);
-      }
-
-      std::string labelText = "Backing up: " + std::string(name);
+      std::string labelText = "Backing up: " + std::string(accountData.username);
       auto label = CCLabelBMFont::create(labelText.c_str(), "bigFont.fnt");
       label->setAlignment(kCCTextAlignmentCenter);
       label->setPosition({m_mainLayer->getContentSize().width / 2,
@@ -176,10 +169,7 @@ void BackupPopup::onSave(CCObject* sender) {
 
                 std::string token =
                     Mod::get()->getSavedValue<std::string>("argonToken");
-                int accountId = 0;
-                if (auto acct = GJAccountManager::get()) {
-                      accountId = acct->m_accountID;
-                }
+                auto accountData = argon::getGameAccountData();
                 std::string saveData;
                 if (auto gm = GameManager::sharedState()) {
                       saveData = gm->getCompressedSaveString();
@@ -188,7 +178,7 @@ void BackupPopup::onSave(CCObject* sender) {
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
 
-                matjson::Value bodySave = matjson::makeObject({{"accountId", accountId},
+                matjson::Value bodySave = matjson::makeObject({{"accountId", accountData.accountId},
                                                                {"saveData", saveData},
                                                                {"argonToken", token}});
                 auto reqSave = web::WebRequest()
@@ -196,34 +186,28 @@ void BackupPopup::onSave(CCObject* sender) {
                                    .bodyJSON(bodySave)
                                    .post(backupUrl + "/save");
 
-                m_listener.bind([this, sender, accountId, token,
-                                   backupUrl](web::WebTask::Event* e) {
-                      if (auto* resp = e->getValue()) {
-                            if (resp->ok()) {
-                                  Notification::create("Account data saved successfully!",
-                                                       NotificationIcon::Success)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
-                                  this->fetchAndUpdateStatus();
-                            } else {
-                                  auto errorBody = resp->string();
-                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
-                                  Notification::create("Account Save failed: " + errorMsg,
-                                                       NotificationIcon::Error)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
+                m_listener.spawn(std::move(reqSave), [this, sender, accountData, token,
+                                   backupUrl](web::WebResponse resp) {
+                      if (resp.ok()) {
+                            Notification::create("Account data saved successfully!",
+                                                 NotificationIcon::Success)
+                                ->show();
+                            this->hideLoading();
+                            this->enableButton(sender);
+                            this->fetchAndUpdateStatus();
+                      } else {
+                            std::string errorMsg = "Unknown error";
+                            if (auto errorBody = resp.string()) {
+                                  errorMsg = std::string(errorBody.unwrap().c_str());
+                                  errorMsg = parseResponseError(errorMsg);
                             }
-                      } else if (e->isCancelled()) {
-                            Notification::create("Account Save request was cancelled",
+                            Notification::create("Account Save failed: " + errorMsg,
                                                  NotificationIcon::Error)
                                 ->show();
                             this->hideLoading();
                             this->enableButton(sender);
                       }
                 });
-                m_listener.setFilter(std::move(reqSave));
           });
       if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
             BackupPopup::showNotice();
@@ -245,10 +229,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
 
                 std::string token =
                     Mod::get()->getSavedValue<std::string>("argonToken");
-                int accountId = 0;
-                if (auto acct = GJAccountManager::get()) {
-                      accountId = acct->m_accountID;
-                }
+                auto accountData = argon::getGameAccountData();
                 std::string levelData;
                 if (auto gm = GameManager::sharedState()) {
                       levelData = LocalLevelManager::get()->getCompressedSaveString();
@@ -258,7 +239,7 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                     Mod::get()->getSettingValue<std::string>("backup-url");
 
                 matjson::Value bodyLevel =
-                    matjson::makeObject({{"accountId", accountId},
+                    matjson::makeObject({{"accountId", accountData.accountId},
                                          {"levelData", levelData},
                                          {"argonToken", token}});
                 auto reqLevel = web::WebRequest()
@@ -266,35 +247,28 @@ void BackupPopup::onSaveLocalLevels(CCObject* sender) {
                                     .bodyJSON(bodyLevel)
                                     .post(backupUrl + "/save");
 
-                m_listener.bind([this, sender, accountId, token,
-                                    backupUrl](web::WebTask::Event* e) {
-                      if (auto* resp = e->getValue()) {
-                            if (resp->ok()) {
-                                  Notification::create("Local Levels saved successfully!",
-                                                       NotificationIcon::Success)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
-                                  this->fetchAndUpdateStatus();
-                            } else {
-                                  auto errorBody = resp->string();
-                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
-                                  Notification::create("Local Level Save failed: " + errorMsg,
-                                                       NotificationIcon::Error)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
+                m_listener.spawn(std::move(reqLevel), [this, sender, accountData, token,
+                                    backupUrl](web::WebResponse resp) {
+                      if (resp.ok()) {
+                            Notification::create("Local Levels saved successfully!",
+                                                 NotificationIcon::Success)
+                                ->show();
+                            this->hideLoading();
+                            this->enableButton(sender);
+                            this->fetchAndUpdateStatus();
+                      } else {
+                            std::string errorMsg = "Unknown error";
+                            if (auto errorBody = resp.string()) {
+                                  errorMsg = std::string(errorBody.unwrap().c_str());
+                                  errorMsg = parseResponseError(errorMsg);
                             }
-                      } else if (e->isCancelled()) {
-                            Notification::create("Local Level Save request was cancelled",
+                            Notification::create("Local Level Save failed: " + errorMsg,
                                                  NotificationIcon::Error)
                                 ->show();
                             this->hideLoading();
                             this->enableButton(sender);
                       }
                 });
-                m_listener.setFilter(std::move(reqLevel));
           });
       // check if this is the first time setup
       if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
@@ -316,57 +290,52 @@ void BackupPopup::onLoad(CCObject* sender) {
                 this->showLoading("Downloading account data...");
                 std::string token =
                     Mod::get()->getSavedValue<std::string>("argonToken");
-                int accountId = 0;
-                if (auto acct = GJAccountManager::get()) {
-                      accountId = acct->m_accountID;
-                }
+                auto accountData = argon::getGameAccountData();
                 matjson::Value body = matjson::makeObject(
-                    {{"accountId", accountId}, {"argonToken", token}});
+                    {{"accountId", accountData.accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
                 auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/load");
-                m_listener.bind([this, sender](web::WebTask::Event* e) {
-                      if (auto* resp = e->getValue()) {
-                            if (resp->ok()) {
-                                  if (auto gm = GameManager::sharedState()) {
-                                        auto result = resp->string();
-                                        if (result) {
-                                              gd::string saveStr = result.unwrap();
-                                              gm->loadFromCompressedString(saveStr);
-                                              Notification::create("Backup loaded successfully!",
-                                                                   NotificationIcon::Success)
-                                                  ->show();
-                                              this->hideLoading();
-                                              this->enableButton(sender);
-                                        } else {
-                                              Notification::create(
-                                                  "Failed to get backup data from response",
-                                                  NotificationIcon::Error)
-                                                  ->show();
-                                              this->enableButton(sender);
-                                        }
+                m_listener.spawn(std::move(req), [this, sender](web::WebResponse resp) {
+                      if (resp.ok()) {
+                            if (auto gm = GameManager::sharedState()) {
+                                  std::string saveData;
+                                  if (auto result = resp.string()) {
+                                        saveData = std::string(result.unwrap().c_str());
                                   }
-                            } else {
-                                  auto errorBody = resp->string();
-                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
-                                  Notification::create("Load failed: " + errorMsg,
-                                                       NotificationIcon::Error)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
+                                  
+                                  if (!saveData.empty()) {
+                                        gm->loadFromCompressedString(saveData);
+                                        Notification::create("Backup loaded successfully!",
+                                                             NotificationIcon::Success)
+                                            ->show();
+                                        this->hideLoading();
+                                        this->enableButton(sender);
+                                  } else {
+                                        Notification::create(
+                                            "Failed to get backup data from response",
+                                            NotificationIcon::Error)
+                                            ->show();
+                                        this->hideLoading();
+                                        this->enableButton(sender);
+                                  }
                             }
-                      } else if (e->isCancelled()) {
-                            Notification::create("Load request was cancelled",
+                      } else {
+                            std::string errorMsg = "Unknown error";
+                            if (auto errorBody = resp.string()) {
+                                  errorMsg = std::string(errorBody.unwrap().c_str());
+                                  errorMsg = parseResponseError(errorMsg);
+                            }
+                            Notification::create("Load failed: " + errorMsg,
                                                  NotificationIcon::Error)
                                 ->show();
                             this->hideLoading();
                             this->enableButton(sender);
                       }
                 });
-                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -383,62 +352,50 @@ void BackupPopup::onDelete(CCObject* sender) {
                 this->showLoading("Deleting backup...");
                 std::string token =
                     Mod::get()->getSavedValue<std::string>("argonToken");
-                int accountId = 0;
-                if (auto acct = GJAccountManager::get()) {
-                      accountId = acct->m_accountID;
-                }
+                auto accountData = argon::getGameAccountData();
                 matjson::Value body = matjson::makeObject(
-                    {{"accountId", accountId}, {"argonToken", token}});
+                    {{"accountId", accountData.accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
                 auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/delete");
-                m_listener.bind([this, sender](web::WebTask::Event* e) {
-                      if (auto* resp = e->getValue()) {
-                            if (resp->ok()) {
-                                  Notification::create("Backup deleted successfully!",
-                                                       NotificationIcon::Success)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
-                                  // Update size and last saved labels
-                                  if constexpr (std::is_member_object_pointer_v<
-                                                    decltype(&BackupPopup::sizeLabel)>) {
-                                        if (sizeLabel && lastSavedLabel) {
-                                              int accountId = 0;
-                                              if (auto acct = GJAccountManager::get()) {
-                                                    accountId = acct->m_accountID;
-                                              }
-                                              std::string token =
-                                                  Mod::get()->getSavedValue<std::string>("argonToken");
-                                              matjson::Value body = matjson::makeObject(
-                                                  {{"accountId", accountId}, {"argonToken", token}});
-                                              std::string backupUrl =
-                                                  Mod::get()->getSettingValue<std::string>("backup-url");
-                                              // fetch and update both size and last saved once
-                                              this->fetchAndUpdateStatus();
-                                        }
+                m_listener.spawn(std::move(req), [this, sender](web::WebResponse resp) {
+                      if (resp.ok()) {
+                            Notification::create("Backup deleted successfully!",
+                                                 NotificationIcon::Success)
+                                ->show();
+                            this->hideLoading();
+                            this->enableButton(sender);
+                            // Update size and last saved labels
+                            if constexpr (std::is_member_object_pointer_v<
+                                              decltype(&BackupPopup::sizeLabel)>) {
+                                  if (sizeLabel && lastSavedLabel) {
+                                        auto accountData = argon::getGameAccountData();
+                                        std::string token =
+                                            Mod::get()->getSavedValue<std::string>("argonToken");
+                                        matjson::Value body = matjson::makeObject(
+                                            {{"accountId", accountData.accountId}, {"argonToken", token}});
+                                        std::string backupUrl =
+                                            Mod::get()->getSettingValue<std::string>("backup-url");
+                                        // fetch and update both size and last saved once
+                                        this->fetchAndUpdateStatus();
                                   }
-                            } else {
-                                  auto errorBody = resp->string();
-                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
-                                  Notification::create("Delete failed: " + errorMsg,
-                                                       NotificationIcon::Error)
-                                      ->show();
-                                  this->hideLoading();
-                                  this->enableButton(sender);
                             }
-                      } else if (e->isCancelled()) {
-                            Notification::create("Delete request was cancelled",
+                      } else {
+                            std::string errorMsg = "Unknown error";
+                            if (auto errorBody = resp.string()) {
+                                  errorMsg = std::string(errorBody.unwrap().c_str());
+                                  errorMsg = parseResponseError(errorMsg);
+                            }
+                            Notification::create("Delete failed: " + errorMsg,
                                                  NotificationIcon::Error)
                                 ->show();
                             this->hideLoading();
                             this->enableButton(sender);
                       }
                 });
-                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -455,66 +412,59 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                 this->showLoading("Loading local levels...");
                 std::string token =
                     Mod::get()->getSavedValue<std::string>("argonToken");
-                int accountId = 0;
-                if (auto acct = GJAccountManager::get()) {
-                      accountId = acct->m_accountID;
-                }
+                auto accountData = argon::getGameAccountData();
                 matjson::Value body = matjson::makeObject(
-                    {{"accountId", accountId}, {"argonToken", token}});
+                    {{"accountId", accountData.accountId}, {"argonToken", token}});
                 std::string backupUrl =
                     Mod::get()->getSettingValue<std::string>("backup-url");
                 auto req = web::WebRequest()
                                .timeout(std::chrono::seconds(30))
                                .bodyJSON(body)
                                .post(backupUrl + "/loadlevel");
-                m_listener.bind([this, sender](web::WebTask::Event* e) {
-                      if (auto* resp = e->getValue()) {
-                            if (resp->ok()) {
-                                  auto result = resp->string();
-                                  if (result) {
-                                        // load into LocalLevelManager
-                                        if (auto llm = LocalLevelManager::get()) {
-                                              gd::string levelsStr = result.unwrap();
-                                              llm->loadFromCompressedString(levelsStr);
-                                              Notification::create("Local Levels loaded successfully!",
-                                                                   NotificationIcon::Success)
-                                                  ->show();
-                                              this->hideLoading();
-                                              this->enableButton(sender);
-                                        } else {
-                                              Notification::create("LocalLevelManager not available",
-                                                                   NotificationIcon::Error)
-                                                  ->show();
-                                              this->hideLoading();
-                                              this->enableButton(sender);
-                                        }
+                m_listener.spawn(std::move(req), [this, sender](web::WebResponse resp) {
+                      if (resp.ok()) {
+                            std::string levelData;
+                            if (auto result = resp.string()) {
+                                  levelData = std::string(result.unwrap().c_str());
+                            }
+                            
+                            if (!levelData.empty()) {
+                                  // load into LocalLevelManager
+                                  if (auto llm = LocalLevelManager::get()) {
+                                        llm->loadFromCompressedString(levelData);
+                                        Notification::create("Local Levels loaded successfully!",
+                                                             NotificationIcon::Success)
+                                            ->show();
+                                        this->hideLoading();
+                                        this->enableButton(sender);
                                   } else {
-                                        Notification::create(
-                                            "Failed to get local levels data from response",
-                                            NotificationIcon::Error)
+                                        Notification::create("LocalLevelManager not available",
+                                                             NotificationIcon::Error)
                                             ->show();
                                         this->hideLoading();
                                         this->enableButton(sender);
                                   }
                             } else {
-                                  auto errorBody = resp->string();
-                                  std::string errorMsg = errorBody ? parseResponseError(errorBody.unwrap()) : "Unknown error";
-                                  Notification::create("Load local levels failed: " + errorMsg,
-                                                       NotificationIcon::Error)
+                                  Notification::create(
+                                      "Failed to get local levels data from response",
+                                      NotificationIcon::Error)
                                       ->show();
                                   this->hideLoading();
                                   this->enableButton(sender);
                             }
-                      } else if (e->isCancelled()) {
-                            Notification::create(
-                                "Load local levels request was cancelled or timed out",
-                                NotificationIcon::Error)
+                      } else {
+                            std::string errorMsg = "Unknown error";
+                            if (auto errorBody = resp.string()) {
+                                  errorMsg = std::string(errorBody.unwrap().c_str());
+                                  errorMsg = parseResponseError(errorMsg);
+                            }
+                            Notification::create("Load local levels failed: " + errorMsg,
+                                                 NotificationIcon::Error)
                                 ->show();
                             this->hideLoading();
                             this->enableButton(sender);
                       }
                 });
-                m_listener.setFilter(std::move(req));
           });
 }
 
@@ -670,73 +620,62 @@ void BackupPopup::setLastSavedFromCheckResponse(const std::string& jsonStr) {
 }
 
 void BackupPopup::fetchAndUpdateStatus() {
-      int accountId = 0;
-      if (auto acct = GJAccountManager::get()) {
-            accountId = acct->m_accountID;
-      }
+      auto accountData = argon::getGameAccountData();
       std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
-      matjson::Value body = matjson::makeObject({{"accountId", accountId}, {"argonToken", token}});
+      matjson::Value body = matjson::makeObject({{"accountId", accountData.accountId}, {"argonToken", token}});
       std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
       auto req = web::WebRequest()
                      .timeout(std::chrono::seconds(30))
                      .header("Content-Type", "application/json")
                      .bodyJSON(body)
                      .post(backupUrl + "/check");
-      m_listener.bind([this](web::WebTask::Event* e) {
-            if (auto* resp = e->getValue()) {
-                  if (resp->ok()) {
-                        auto strResult = resp->string();
-                        if (strResult) {
-                              const std::string& str = strResult.unwrap();
-                              auto parsed = matjson::Value::parse(str);
-                              if (parsed) {
-                                    auto obj = parsed.unwrap();
-                                    long long saveBytes = 0;
-                                    long long levelBytes = 0;
-                                    int freePercentage = 0;
-                                    long long totalSize = 0;
-                                    long long maxDataSize = 0;
-                                    if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
-                                    if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
-                                    if (auto fsp = obj["freeSpacePercentage"].asInt()) freePercentage = fsp.unwrap();
-                                    if (auto ts = obj["totalSize"].asInt()) totalSize = ts.unwrap();
-                                    if (auto mds = obj["maxDataSize"].asInt()) maxDataSize = mds.unwrap();
+      m_listener.spawn(std::move(req), [this](web::WebResponse resp) {
+            if (resp.ok()) {
+                  std::string str;
+                  if (auto strResult = resp.string()) {
+                        str = std::string(strResult.unwrap().c_str());
+                        auto parsed = matjson::Value::parse(str);
+                        if (parsed) {
+                              auto obj = parsed.unwrap();
+                              long long saveBytes = 0;
+                              long long levelBytes = 0;
+                              int freePercentage = 0;
+                              long long totalSize = 0;
+                              long long maxDataSize = 0;
+                              if (auto s = obj["saveData"].asInt()) saveBytes = s.unwrap();
+                              if (auto l = obj["levelData"].asInt()) levelBytes = l.unwrap();
+                              if (auto fsp = obj["freeSpacePercentage"].asInt()) freePercentage = fsp.unwrap();
+                              if (auto ts = obj["totalSize"].asInt()) totalSize = ts.unwrap();
+                              if (auto mds = obj["maxDataSize"].asInt()) maxDataSize = mds.unwrap();
 
-                                    // subscriber is a boolean from /check
-                                    bool isSubscriber = false;
-                                    if (auto sb = obj["subscriber"].asBool()) {
-                                          isSubscriber = sb.unwrap();
-                                    }
-                                    if (subscriberLabel) subscriberLabel->setVisible(isSubscriber);
-
-                                    setCombinedSize(saveBytes, levelBytes);
-                                    setFreeSpaceAndTotal(freePercentage, totalSize, maxDataSize);
-                                    setLastSavedFromCheckResponse(str);
-                              } else {
-                                    if (subscriberLabel) subscriberLabel->setVisible(false);
-                                    setCombinedSizeNA();
-                                    setFreeSpaceNA();
-                                    if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
+                              // subscriber is a boolean from /check
+                              bool isSubscriber = false;
+                              if (auto sb = obj["subscriber"].asBool()) {
+                                    isSubscriber = sb.unwrap();
                               }
+                              if (subscriberLabel) subscriberLabel->setVisible(isSubscriber);
+
+                              setCombinedSize(saveBytes, levelBytes);
+                              setFreeSpaceAndTotal(freePercentage, totalSize, maxDataSize);
+                              setLastSavedFromCheckResponse(str);
                         } else {
+                              if (subscriberLabel) subscriberLabel->setVisible(false);
                               setCombinedSizeNA();
                               setFreeSpaceNA();
                               if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
                         }
                   } else {
-                        if (subscriberLabel) subscriberLabel->setVisible(false);
                         setCombinedSizeNA();
                         setFreeSpaceNA();
                         if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
                   }
             } else {
                   if (subscriberLabel) subscriberLabel->setVisible(false);
-                  setCombinedSizeLoading();
-                  freeSpaceLabel->setString("Free: ...");
-                  if (lastSavedLabel) lastSavedLabel->setString("Last Saved: ...");
+                  setCombinedSizeNA();
+                  setFreeSpaceNA();
+                  if (lastSavedLabel) lastSavedLabel->setString("Last Saved: N/A");
             }
       });
-      m_listener.setFilter(std::move(req));
 }
 
 // public ts

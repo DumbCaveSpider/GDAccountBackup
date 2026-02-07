@@ -7,7 +7,7 @@
 
 using namespace geode::prelude;
 
-class BackupPopup : public Popup<> {
+class BackupPopup : public Popup {
      public:
       static BackupPopup* create();
       void onShowNotice(CCObject*);
@@ -15,7 +15,7 @@ class BackupPopup : public Popup<> {
       void refreshStatus();
 
      protected:
-      bool setup() override;
+      bool init() override;
 
      private:
       void onSave(CCObject*);
@@ -50,5 +50,5 @@ class BackupPopup : public Popup<> {
       std::string parseResponseError(const std::string& responseBody);
 
      private:
-      geode::EventListener<web::WebTask> m_listener;
+      async::TaskHolder<web::WebResponse> m_listener;
 };
