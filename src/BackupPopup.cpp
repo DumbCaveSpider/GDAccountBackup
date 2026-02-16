@@ -308,7 +308,8 @@ void BackupPopup::onLoad(CCObject* sender) {
                                   }
                                   
                                   if (!saveData.empty()) {
-                                        gm->loadFromCompressedString(saveData);
+                                        gd::string saveDataGd = saveData;
+                                        gm->loadFromCompressedString(saveDataGd);
                                         Notification::create("Backup loaded successfully!",
                                                              NotificationIcon::Success)
                                             ->show();
@@ -431,7 +432,8 @@ void BackupPopup::onLoadLocalLevels(CCObject* sender) {
                             if (!levelData.empty()) {
                                   // load into LocalLevelManager
                                   if (auto llm = LocalLevelManager::get()) {
-                                        llm->loadFromCompressedString(levelData);
+                                        gd::string levelDataGd = levelData;
+                                        llm->loadFromCompressedString(levelDataGd);
                                         Notification::create("Local Levels loaded successfully!",
                                                              NotificationIcon::Success)
                                             ->show();
