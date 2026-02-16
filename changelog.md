@@ -1,3 +1,7 @@
+# v1.1.2
+
+- Ported to Geode v5.0.0
+
 # v1.1.1
 
 - Minor tweaks relating to cleanup of event listeners
@@ -56,4 +60,4 @@
 
 # v1.0.0
 
-- get yo account backup on ig 
+- get yo account backup on ig
