@@ -8,6 +8,14 @@
 
 using namespace geode::prelude;
 
+static std::string getResponseFailMessage(web::WebResponse const &response,
+                                          std::string const &fallback) {
+  auto message = response.string().unwrapOrDefault();
+  if (!message.empty())
+    return message;
+  return fallback;
+}
+
 MembershipPopup *MembershipPopup::create() {
   auto ret = new MembershipPopup();
   if (ret && ret->init()) {
@@ -78,14 +86,16 @@ void MembershipPopup::onApplyMembership(CCObject *sender) {
   }
 
   auto upopup = UploadActionPopup::create(nullptr, "Applying Membership...");
-      upopup->show();
+  upopup->show();
 
   auto accountData = argon::getGameAccountData();
 
   std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
 
-  matjson::Value body = matjson::makeObject(
-      {{"email", email}, {"accountId", accountData.accountId}, {"argonToken", token}});
+  matjson::Value body =
+      matjson::makeObject({{"email", email},
+                           {"accountId", accountData.accountId},
+                           {"argonToken", token}});
 
   std::string backupUrl =
       Mod::get()->getSettingValue<std::string>("backup-url");
@@ -113,17 +123,7 @@ void MembershipPopup::onApplyMembership(CCObject *sender) {
         }
       }
     } else {
-      auto errorBody = resp.string();
-      std::string errorMsg = "Unknown error";
-      if (errorBody) {
-        auto parsed = matjson::Value::parse(errorBody.unwrap());
-        if (parsed) {
-          auto obj = parsed.unwrap();
-          if (auto err = obj["error"].asString()) {
-            errorMsg = err.unwrap();
-          }
-        }
-      }
+      std::string errorMsg = getResponseFailMessage(resp, "Unknown error");
       upopup->showFailMessage(errorMsg);
     }
   });

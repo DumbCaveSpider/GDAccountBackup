@@ -1,3 +1,8 @@
+# v1.1.3
+
+- Better Error handling for backup and load failures
+- Improved Backup Popup UI
+
 # v1.1.2
 
 - Ported to Geode v5.0.0

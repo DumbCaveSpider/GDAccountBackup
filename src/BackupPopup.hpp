@@ -1,54 +1,54 @@
 #pragma once
 
+#include "Geode/cocos/menu_nodes/CCMenuItem.h"
 #include <Geode/Geode.hpp>
 #include <argon/argon.hpp>
 
-#include "LoadingPopup.hpp"
 
 using namespace geode::prelude;
 
-class BackupPopup : public Popup {
-     public:
-      static BackupPopup* create();
-      void onShowNotice(CCObject*);
-      static void showNotice();
-      void refreshStatus();
 
-     protected:
-      bool init() override;
+class BackupPopup : public Popup, public UploadPopupDelegate {
+public:
+  static BackupPopup *create();
+  void onShowNotice(CCObject *);
+  static void showNotice();
+  void refreshStatus();
+  void onClosePopup(UploadActionPopup* popup) override;
 
-     private:
-      void onSave(CCObject*);
-      void onSaveLocalLevels(CCObject*);
-      void onLoad(CCObject*);
-      void onLoadLocalLevels(CCObject*);
-      void onDelete(CCObject*);
-      void onModSettings(CCObject*);
-      void onMembershipPopup(CCObject*);
+protected:
+  bool init() override;
 
-      void disableButton(CCObject* sender);
-      void enableButton(CCObject* sender);
+private:
+  void onSave(CCObject *);
+  void onSaveLocalLevels(CCObject *);
+  void onLoad(CCObject *);
+  void onLoadLocalLevels(CCObject *);
+  void onDelete(CCObject *);
+  void onModSettings(CCObject *);
+  void onMembershipPopup(CCObject *);
 
-      CCLabelBMFont* sizeLabel = nullptr;
-      CCLabelBMFont* lastSavedLabel = nullptr;
-      CCLabelBMFont* freeSpaceLabel = nullptr;
-      CCLabelBMFont* subscriberLabel = nullptr;
+  CCLabelBMFont *sizeLabel = nullptr;
+  CCLabelBMFont *lastSavedLabel = nullptr;
+  CCLabelBMFont *freeSpaceLabel = nullptr;
+  CCLabelBMFont *subscriberLabel = nullptr;
 
-      // helper methods to update the combined size label
-      void setCombinedSize(long long saveBytes, long long levelBytes);
-      void setCombinedSizeNA();
-      void setCombinedSizeLoading();
-      void setLastSavedFromCheckResponse(const std::string& jsonStr);
-      void setFreeSpaceAndTotal(int freePercentage, long long totalSize, long long maxDataSize);
-      void setFreeSpaceNA();
-      void fetchAndUpdateStatus();
-      // Loading overlay
-      LoadingPopup* m_loadingPopup = nullptr;
-      void showLoading(const std::string& msg);
+  CCMenuItemSpriteExtra *m_saveAccountItem = nullptr;
+  CCMenuItemSpriteExtra *m_saveLevelsItem = nullptr;
+  CCMenuItemSpriteExtra *m_loadItem = nullptr;
+  CCMenuItemSpriteExtra *m_loadLevelsItem = nullptr;
+  CCMenuItemSpriteExtra *m_deleteItem = nullptr;
 
-      void hideLoading();
-      std::string parseResponseError(const std::string& responseBody);
+  // helper methods to update the combined size label
+  void setCombinedSize(long long saveBytes, long long levelBytes);
+  void setCombinedSizeNA();
+  void setCombinedSizeLoading();
+  void setLastSavedFromCheckResponse(const std::string &jsonStr);
+  void setFreeSpaceAndTotal(int freePercentage, long long totalSize,
+                            long long maxDataSize);
+  void setFreeSpaceNA();
+  void fetchAndUpdateStatus();
 
-     private:
-      async::TaskHolder<web::WebResponse> m_listener;
+private:
+  async::TaskHolder<web::WebResponse> m_listener;
 };
