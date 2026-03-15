@@ -4,7 +4,7 @@
 #include <UIBuilder.hpp>
 
 bool BackupNotification::init() {
-    if (!CCNode::init()) return false;
+    if (!CCNodeRGBA::init()) return false;
 
     constexpr CCSize SIZE = { 150.0f, 50.0f };
 
