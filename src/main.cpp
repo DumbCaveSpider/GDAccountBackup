@@ -1,5 +1,4 @@
 #include <Geode/Geode.hpp>
-#include <Geode/binding/GameManager.hpp>
 #include <Geode/modify/AccountLayer.hpp>
 #include <Geode/modify/GameStatsManager.hpp>
 #include <Geode/utils/web.hpp>
@@ -7,8 +6,10 @@
 #include <argon/argon.hpp>
 #include <matjson.hpp>
 
+#include "BackupNotification.hpp"
 #include "BackupPopup.hpp"
 #include "helper.hpp"
+#include "SaveManager.hpp"
 
 using namespace geode::prelude;
 using namespace geode::utils::web;
@@ -239,62 +240,20 @@ class $modify(MyAccountLayer, AccountLayer) {
 };
 
 static void startAutoBackup() {
-      bool autoBackup = Mod::get()->getSettingValue<bool>("auto-backup");
+      if (!Mod::get()->getSettingValue<bool>("auto-backup")) return;
 
-      if (!autoBackup) {
-            log::warn("Auto-backup is disabled, skipping backup");
-            return;
-      }
-
-      // make sure the player is on a level
       if (!PlayLayer::get())
             return;
-      // check if this is the first time setup
-      if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
-            BackupPopup::showNotice();
-            Mod::get()->setSavedValue<bool>("hasRead2", true);
-      }
 
-      log::info("starting auto-backup");
-      Notification::create("Auto-backup in progress", NotificationIcon::Loading)
-          ->show();
-      // backup only the account data
-      std::string token = Mod::get()->getSavedValue<std::string>("argonToken");
-      int accountId = 0;
-      if (auto acct = GJAccountManager::get()) {
-            accountId = acct->m_accountID;
-      }
-      std::string saveData;
-      if (auto gm = GameManager::sharedState()) {
-            saveData = gm->getCompressedSaveString();
-      }
-
-      std::string backupUrl = Mod::get()->getSettingValue<std::string>("backup-url");
-
-      // save account data only
-      matjson::Value bodySave = matjson::makeObject({{"accountId", accountId},
-                                                     {"saveData", saveData},
-                                                     {"argonToken", token}});
-
-      auto reqSave = createBackupRequest()
-                         .timeout(std::chrono::seconds(30))
-                         .bodyJSON(bodySave)
-                         .post(backupUrl + "/save");
-      static async::TaskHolder<web::WebResponse> saveListener;
-      saveListener.spawn(std::move(reqSave), [](web::WebResponse resp) {
-            if (resp.ok()) {
-                  log::info("Auto-backup successful");
-                  Notification::create("Auto-backup completed successfully!",
-                                       NotificationIcon::Success)
-                      ->show();
-            } else {
-                  log::warn("Auto-backup failed with status: {}", resp.code());
-                  Notification::create(
-                      fmt::format("Auto-backup failed with status: {}", resp.code()),
-                      NotificationIcon::Error)
-                      ->show();
-            }
-      });
+      SaveManager::get().scheduleSaveDataDelayed([](const WebResponse& resp) {
+        if (resp.ok()) {
+            log::info("Auto-backup successful");
+        } else {
+            log::warn("Auto-backup failed with status: {}", resp.code());
+            Notification::create(
+            fmt::format("Auto-backup failed with status: {}", resp.code()), NotificationIcon::Error)->show();
+        }
+    });
 }
 
 class $modify(MyGameStatsManager, GameStatsManager) {
