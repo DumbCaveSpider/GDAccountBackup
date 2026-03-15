@@ -1,5 +1,4 @@
 #include <Geode/Geode.hpp>
-#include <Geode/binding/GameManager.hpp>
 #include <Geode/modify/AccountLayer.hpp>
 #include <Geode/modify/GameStatsManager.hpp>
 #include <Geode/utils/web.hpp>
@@ -7,6 +6,7 @@
 #include <argon/argon.hpp>
 #include <matjson.hpp>
 
+#include "BackupNotification.hpp"
 #include "BackupPopup.hpp"
 #include "helper.hpp"
 #include "SaveManager.hpp"
@@ -16,6 +16,7 @@ using namespace geode::utils::web;
 
 class $modify(MyAccountLayer, AccountLayer) {
       void customSetup() {
+            BackupNotification::create();
             log::debug("AccountLayer says hi");
             // menu at the right side
             auto menu = CCMenu::create();
@@ -245,7 +246,15 @@ static void startAutoBackup() {
       if (!PlayLayer::get())
             return;
 
-      SaveManager::get().scheduleSaveDelayed();
+      SaveManager::get().scheduleSaveDataDelayed([](const WebResponse& resp) {
+        if (resp.ok()) {
+            log::info("Auto-backup successful");
+        } else {
+            log::warn("Auto-backup failed with status: {}", resp.code());
+            Notification::create(
+            fmt::format("Auto-backup failed with status: {}", resp.code()),NotificationIcon::Error)->show();
+        }
+    });
 }
 
 class $modify(MyGameStatsManager, GameStatsManager) {

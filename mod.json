@@ -34,7 +34,7 @@
 		"auto-backup": {
 			"type": "bool",
 			"name": "Auto Backup",
-			"description": "Automatically backup your account to the server whenever you complete a level. <cy>May experience slight lag spike upon level completion.</c> <cr>Tthis may break your level progression if something goes wrong.",
+			"description": "Automatically backup your account to the server whenever you complete a level.",
 			"default": false
 		}
 	},

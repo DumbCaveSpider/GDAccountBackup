@@ -14,6 +14,7 @@
 #include "Geode/ui/BasedButtonSprite.hpp"
 #include "Geode/ui/NineSlice.hpp"
 #include "MembershipPopup.hpp"
+#include "SaveManager.hpp"
 
 using namespace geode::prelude;
 
@@ -195,43 +196,20 @@ void BackupPopup::onSave(CCObject *sender) {
       "Do you want to <cg>save</c> your account data to the "
       "backup server?\n<cy>This will overwrite your existing backup saved in "
       "the server.</c>",
-      "Cancel", "Save", [this, sender](FLAlertLayer *, bool confirmed) {
+      "Cancel", "Save", [this](FLAlertLayer *, bool confirmed) {
         if (!confirmed)
           return;
         auto upopup = UploadActionPopup::create(this, "Saving account data...");
         upopup->show();
 
-        std::string token =
-            Mod::get()->getSavedValue<std::string>("argonToken");
-        auto accountData = argon::getGameAccountData();
-        std::string saveData;
-        if (auto gm = GameManager::sharedState()) {
-          saveData = gm->getCompressedSaveString();
-        }
-
-        std::string backupUrl =
-            Mod::get()->getSettingValue<std::string>("backup-url");
-
-        matjson::Value bodySave =
-            matjson::makeObject({{"accountId", accountData.accountId},
-                                 {"saveData", saveData},
-                                 {"argonToken", token}});
-        auto reqSave = createBackupRequest()
-                           .timeout(std::chrono::seconds(30))
-                           .bodyJSON(bodySave)
-                           .post(backupUrl + "/save");
-
-        m_listener.spawn(
-            std::move(reqSave), [this, sender, upopup, accountData, token,
-                                 backupUrl](web::WebResponse resp) {
-              if (resp.ok()) {
-                upopup->showSuccessMessage("Account data saved successfully!");
-                this->fetchAndUpdateStatus();
-              } else {
-                upopup->showFailMessage(
-                    getResponseFailMessage(resp, "Unknown error"));
-              }
-            });
+        SaveManager::get().scheduleSaveData([this, upopup](const web::WebResponse& resp) {
+          if (resp.ok()) {
+            upopup->showSuccessMessage("Account data saved successfully!");
+            this->fetchAndUpdateStatus();
+          } else {
+            upopup->showFailMessage(getResponseFailMessage(resp, "Unknown error"));
+          }
+        });
       });
   if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
     BackupPopup::showNotice();
@@ -251,37 +229,14 @@ void BackupPopup::onSaveLocalLevels(CCObject *sender) {
         auto upopup = UploadActionPopup::create(this, "Saving local levels...");
         upopup->show();
 
-        std::string token =
-            Mod::get()->getSavedValue<std::string>("argonToken");
-        auto accountData = argon::getGameAccountData();
-        std::string levelData;
-        if (auto gm = GameManager::sharedState()) {
-          levelData = LocalLevelManager::get()->getCompressedSaveString();
-        }
-
-        std::string backupUrl =
-            Mod::get()->getSettingValue<std::string>("backup-url");
-
-        matjson::Value bodyLevel =
-            matjson::makeObject({{"accountId", accountData.accountId},
-                                 {"levelData", levelData},
-                                 {"argonToken", token}});
-        auto reqLevel = createBackupRequest()
-                            .timeout(std::chrono::seconds(30))
-                            .bodyJSON(bodyLevel)
-                            .post(backupUrl + "/save");
-
-        m_listener.spawn(
-            std::move(reqLevel), [this, sender, upopup, accountData, token,
-                                  backupUrl](web::WebResponse resp) {
-              if (resp.ok()) {
-                upopup->showSuccessMessage("Local Levels saved successfully!");
-                this->fetchAndUpdateStatus();
-              } else {
-                upopup->showFailMessage(
-                    getResponseFailMessage(resp, "Unknown error"));
-              }
-            });
+        SaveManager::get().scheduleSaveLevels([this, upopup](const web::WebResponse& resp) {
+          if (resp.ok()) {
+            upopup->showSuccessMessage("Local Levels saved successfully!");
+            this->fetchAndUpdateStatus();
+          } else {
+            upopup->showFailMessage(getResponseFailMessage(resp, "Unknown error"));
+          }
+        });
       });
   // check if this is the first time setup
   if (!Mod::get()->getSavedValue<bool>("hasRead2")) {

@@ -1,6 +1,7 @@
 # v1.1.4
 
 - Added a custom authorization token field for private servers (by [SorkoPiko](https://github.com/SorkoPiko))
+- Fixed auto-backup not working sometimes & added save progress UI (by [SorkoPiko](https://github.com/SorkoPiko))
 
 # v1.1.3
 
