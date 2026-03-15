@@ -1,3 +1,7 @@
+# v1.1.4
+
+- Added a custom authorization token field for private servers (by [SorkoPiko](https://github.com/SorkoPiko))
+
 # v1.1.3
 
 - Better Error handling for backup and load failures
