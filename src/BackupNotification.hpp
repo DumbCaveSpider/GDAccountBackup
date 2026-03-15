@@ -19,8 +19,6 @@ class BackupNotification : public CCNodeRGBA {
     CCSprite* failedSprite = nullptr;
     CCSprite* successSprite = nullptr;
 
-    float alpha = 1.f;
-
     bool shown = false;
 
     bool init() override;
