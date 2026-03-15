@@ -8,7 +8,7 @@
 #include <matjson.hpp>
 
 #include "BackupPopup.hpp"
-#include "macros.hpp"
+#include "helper.hpp"
 
 using namespace geode::prelude;
 using namespace geode::utils::web;
@@ -123,7 +123,7 @@ class $modify(MyAccountLayer, AccountLayer) {
                   std::string backupUrl =
                       Mod::get()->getSettingValue<std::string>("backup-url");
 
-                  auto authReq = BACKUP_REQUEST()
+                  auto authReq = createBackupRequest()
                                      .timeout(std::chrono::seconds(10))
                                      .header("Content-Type", "application/json")
                                      .bodyJSON(body)
@@ -276,7 +276,7 @@ static void startAutoBackup() {
                                                      {"saveData", saveData},
                                                      {"argonToken", token}});
 
-      auto reqSave = BACKUP_REQUEST()
+      auto reqSave = createBackupRequest()
                          .timeout(std::chrono::seconds(30))
                          .bodyJSON(bodySave)
                          .post(backupUrl + "/save");

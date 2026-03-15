@@ -10,7 +10,7 @@
 #include <matjson.hpp>
 #include <string>
 
-#include "macros.hpp"
+#include "helper.hpp"
 #include "Geode/ui/BasedButtonSprite.hpp"
 #include "Geode/ui/NineSlice.hpp"
 #include "MembershipPopup.hpp"
@@ -216,7 +216,7 @@ void BackupPopup::onSave(CCObject *sender) {
             matjson::makeObject({{"accountId", accountData.accountId},
                                  {"saveData", saveData},
                                  {"argonToken", token}});
-        auto reqSave = BACKUP_REQUEST()
+        auto reqSave = createBackupRequest()
                            .timeout(std::chrono::seconds(30))
                            .bodyJSON(bodySave)
                            .post(backupUrl + "/save");
@@ -266,7 +266,7 @@ void BackupPopup::onSaveLocalLevels(CCObject *sender) {
             matjson::makeObject({{"accountId", accountData.accountId},
                                  {"levelData", levelData},
                                  {"argonToken", token}});
-        auto reqLevel = BACKUP_REQUEST()
+        auto reqLevel = createBackupRequest()
                             .timeout(std::chrono::seconds(30))
                             .bodyJSON(bodyLevel)
                             .post(backupUrl + "/save");
@@ -309,7 +309,7 @@ void BackupPopup::onLoad(CCObject *sender) {
             {{"accountId", accountData.accountId}, {"argonToken", token}});
         std::string backupUrl =
             Mod::get()->getSettingValue<std::string>("backup-url");
-        auto req = BACKUP_REQUEST()
+        auto req = createBackupRequest()
                        .timeout(std::chrono::seconds(30))
                        .bodyJSON(body)
                        .post(backupUrl + "/load");
@@ -357,7 +357,7 @@ void BackupPopup::onDelete(CCObject *sender) {
             {{"accountId", accountData.accountId}, {"argonToken", token}});
         std::string backupUrl =
             Mod::get()->getSettingValue<std::string>("backup-url");
-        auto req = BACKUP_REQUEST()
+        auto req = createBackupRequest()
                        .timeout(std::chrono::seconds(30))
                        .bodyJSON(body)
                        .post(backupUrl + "/delete");
@@ -408,7 +408,7 @@ void BackupPopup::onLoadLocalLevels(CCObject *sender) {
             {{"accountId", accountData.accountId}, {"argonToken", token}});
         std::string backupUrl =
             Mod::get()->getSettingValue<std::string>("backup-url");
-        auto req = BACKUP_REQUEST()
+        auto req = createBackupRequest()
                        .timeout(std::chrono::seconds(30))
                        .bodyJSON(body)
                        .post(backupUrl + "/loadlevel");
@@ -567,7 +567,7 @@ void BackupPopup::fetchAndUpdateStatus() {
       {{"accountId", accountData.accountId}, {"argonToken", token}});
   std::string backupUrl =
       Mod::get()->getSettingValue<std::string>("backup-url");
-  auto req = BACKUP_REQUEST()
+  auto req = createBackupRequest()
                  .timeout(std::chrono::seconds(30))
                  .header("Content-Type", "application/json")
                  .bodyJSON(body)

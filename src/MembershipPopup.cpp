@@ -5,7 +5,7 @@
 #include <Geode/utils/async.hpp>
 
 #include "BackupPopup.hpp"
-#include "macros.hpp"
+#include "helper.hpp"
 
 using namespace geode::prelude;
 
@@ -101,7 +101,7 @@ void MembershipPopup::onApplyMembership(CCObject *sender) {
   std::string backupUrl =
       Mod::get()->getSettingValue<std::string>("backup-url");
 
-  auto req = BACKUP_REQUEST()
+  auto req = createBackupRequest()
                  .timeout(std::chrono::seconds(30))
                  .header("Content-Type", "application/json")
                  .bodyJSON(body)
