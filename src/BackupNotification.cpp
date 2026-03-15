@@ -41,14 +41,13 @@ bool BackupNotification::init() {
             bar->showProgressLabel(true);
             bar->setPrecision(1);
             bar->getChildByIndex(0)->setScaleY(2.0f);
+            bar->getChildByIndex(0)->runAction(CCFadeTo::create(0.0f, 0));
+            bar->getChildByIndex(0)->getChildByIndex(0)->runAction(CCFadeTo::create(0.0f, 0));
             bar->getChildByIndex(1)->setScale(1.3f);
+            bar->getChildByIndex(1)->runAction(CCFadeTo::create(0.0f, 0));
         })
         .id("progress-bar")
         .parent(this);
-
-    progressBar->getChildByIndex(0)->runAction(CCFadeTo::create(0.0f, 0));
-    progressBar->getChildByIndex(0)->getChildByIndex(0)->runAction(CCFadeTo::create(0.0f, 0));
-    progressBar->getChildByIndex(1)->runAction(CCFadeTo::create(0.0f, 0));
 
     failedSprite = Build<CCSprite>::createSpriteName("edit_delBtnSmall_001.png")
         .scale(0.7f/0.52f)
