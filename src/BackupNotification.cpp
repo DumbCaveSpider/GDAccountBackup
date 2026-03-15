@@ -79,18 +79,22 @@ bool BackupNotification::init() {
 }
 
 void BackupNotification::update(const float delta) {
-    progressBar->updateProgress(progress);
-    spinner->setVisible(status == BackupStatus::InProgress);
-    failedSprite->setVisible(status == BackupStatus::Failed);
-    successSprite->setVisible(status == BackupStatus::Completed);
+    progressBar->updateProgress(*progress.blockingLock());
+    const BackupStatus obtainedStatus = *status.blockingLock();
+    spinner->setVisible(obtainedStatus == BackupStatus::InProgress);
+    failedSprite->setVisible(obtainedStatus == BackupStatus::Failed);
+    successSprite->setVisible(obtainedStatus == BackupStatus::Completed);
 
-    if (status != BackupStatus::InProgress) {
+    if (obtainedStatus != BackupStatus::InProgress) {
         hide();
     }
 
-    if (shouldShow) {
-        show();
-        shouldShow = false;
+    {
+        arc::MutexGuard<bool> showGuard = shouldShow.blockingLock();
+        if (*showGuard) {
+            show();
+            *showGuard = false;
+        }
     }
 }
 

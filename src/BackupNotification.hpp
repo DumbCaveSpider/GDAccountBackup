@@ -1,4 +1,5 @@
 #pragma once
+#include <arc/sync/Mutex.hpp>
 #include <Geode/Prelude.hpp>
 #include <Geode/cocos/base_nodes/CCNode.h>
 
@@ -27,9 +28,9 @@ class BackupNotification : public CCNodeRGBA {
     void update(float delta) override;
 
 public:
-    volatile float progress = 0.0f;
-    volatile BackupStatus status = BackupStatus::InProgress;
-    volatile bool shouldShow = false;
+    arc::Mutex<float> progress = arc::Mutex<float>(0.0f);
+    arc::Mutex<BackupStatus> status = arc::Mutex<BackupStatus>(BackupStatus::InProgress);
+    arc::Mutex<bool> shouldShow = arc::Mutex<bool>(false);
 
     CREATE_FUNC(BackupNotification);
 

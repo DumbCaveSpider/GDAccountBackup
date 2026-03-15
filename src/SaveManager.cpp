@@ -12,25 +12,26 @@ SaveFuture SaveManager::createSaveTask(std::string data, const bool isData, std:
     });
 
     SaveManager& instance = get();
-    instance.backupNotification->shouldShow = true;
-    instance.backupNotification->status = BackupStatus::InProgress;
+    *co_await instance.backupNotification->shouldShow.lock() = true;
+    *co_await instance.backupNotification->status.lock() = BackupStatus::InProgress;
+    int accountID = *co_await instance.accountID.lock();
     std::string token = *co_await instance.argonToken.lock();
     std::string dataKey = isData ? "saveData" : "levelData";
     web::WebRequest req = createBackupRequest()
         .timeout(std::chrono::seconds(30))
         .bodyJSON(matjson::makeObject({
-            {"accountId", instance.accountID},
+            {"accountId", accountID},
             {dataKey, data},
             {"argonToken", token}
         }))
         .onProgress([&instance](const web::WebProgress& progress) {
-            instance.backupNotification->progress = progress.uploadProgress().value_or(0.0f);
+            *instance.backupNotification->progress.blockingLock() = progress.uploadProgress().value_or(0.0f);
         });
 
     const auto backupUrl = *co_await instance.backupURL.lock();
     auto resp = co_await req.post(backupUrl + "/save");
-    if (resp.ok()) instance.backupNotification->status = BackupStatus::Completed;
-    else instance.backupNotification->status = BackupStatus::Failed;
+    if (resp.ok()) *co_await instance.backupNotification->status.lock() = BackupStatus::Completed;
+    else *co_await instance.backupNotification->status.lock() = BackupStatus::Failed;
 
     queueInMainThread([resp, callback] {
         if (callback) {
@@ -69,7 +70,7 @@ SaveManager::SaveManager() {
 }
 
 void SaveManager::scheduleSaveData(std::function<void(web::WebResponse)> callback) {
-    accountID = GJAccountManager::get()->m_accountID;
+    *accountID.blockingLock() = GJAccountManager::get()->m_accountID;
     *argonToken.blockingLock() = Mod::get()->getSavedValue<std::string>("argonToken");
     *backupURL.blockingLock() = Mod::get()->getSettingValue<std::string>("backup-url");
 
@@ -92,7 +93,7 @@ void SaveManager::scheduleSaveDataDelayed(std::function<void(web::WebResponse)> 
 }
 
 void SaveManager::scheduleSaveLevels(std::function<void(web::WebResponse)> callback) {
-    accountID = GJAccountManager::get()->m_accountID;
+    *accountID.blockingLock() = GJAccountManager::get()->m_accountID;
     *argonToken.blockingLock() = Mod::get()->getSavedValue<std::string>("argonToken");
     *backupURL.blockingLock() = Mod::get()->getSettingValue<std::string>("backup-url");
 

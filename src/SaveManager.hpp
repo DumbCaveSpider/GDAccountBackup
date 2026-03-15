@@ -17,7 +17,7 @@ struct SaveItem {
 class SaveManager {
     std::optional<arc::mpsc::Sender<SaveItem>> saveDataChannel;
     std::optional<arc::mpsc::Sender<SaveItem>> saveLevelsChannel;
-    volatile int accountID = 0;
+    arc::Mutex<int> accountID;
     arc::Mutex<std::string> argonToken;
     arc::Mutex<std::string> backupURL;
     Ref<BackupNotification> backupNotification = nullptr;

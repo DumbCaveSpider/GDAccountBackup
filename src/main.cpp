@@ -16,7 +16,6 @@ using namespace geode::utils::web;
 
 class $modify(MyAccountLayer, AccountLayer) {
       void customSetup() {
-            BackupNotification::create();
             log::debug("AccountLayer says hi");
             // menu at the right side
             auto menu = CCMenu::create();
@@ -252,7 +251,7 @@ static void startAutoBackup() {
         } else {
             log::warn("Auto-backup failed with status: {}", resp.code());
             Notification::create(
-            fmt::format("Auto-backup failed with status: {}", resp.code()),NotificationIcon::Error)->show();
+            fmt::format("Auto-backup failed with status: {}", resp.code()), NotificationIcon::Error)->show();
         }
     });
 }
