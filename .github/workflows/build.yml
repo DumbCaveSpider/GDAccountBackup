@@ -1,0 +1,10 @@
+name: Build
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: geode-sdk/build-geode-mod@main
+        with:
+          combos: '["win-x64"]'
