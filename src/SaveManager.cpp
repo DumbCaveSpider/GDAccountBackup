@@ -18,7 +18,7 @@ SaveFuture SaveManager::createSaveTask(std::string data, const bool isData, std:
     std::string token = *co_await instance.argonToken.lock();
     std::string dataKey = isData ? "saveData" : "levelData";
     web::WebRequest req = createBackupRequest()
-        .timeout(std::chrono::seconds(30))
+        .timeout(std::chrono::seconds(300))
         .bodyJSON(matjson::makeObject({
             {"accountId", accountID},
             {dataKey, data},
