@@ -243,9 +243,12 @@ static void startAutoBackup() {
     });
 }
 
+// temp disable for macos and ios
+#if !defined(GEODE_IS_MACOS) && !defined(GEODE_IS_IOS)
 class $modify(MyGameStatsManager, GameStatsManager) {
     void completedLevel(GJGameLevel* p0) {
         GameStatsManager::completedLevel(p0);
         startAutoBackup();
     }
 };
+#endif

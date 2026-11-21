@@ -1,6 +1,7 @@
 # v1.1.6
 
 - Bump to Geode v6
+- Added Timeout Seconds on the mod settings
 
 # v1.1.5
 
