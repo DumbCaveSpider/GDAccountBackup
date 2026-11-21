@@ -21,9 +21,8 @@ endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-CPMAddPackage("gh:GlobedGD/argon@1.4.4")
 CPMAddPackage("gh:camila314/UIBuilder#2ab80ad")
-target_link_libraries(${PROJECT_NAME} argon UIBuilder)
+target_link_libraries(${PROJECT_NAME} UIBuilder)
 
 setup_geode_mod(${PROJECT_NAME})
 

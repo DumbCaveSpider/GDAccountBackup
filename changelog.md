@@ -1,3 +1,12 @@
+# v1.1.6
+
+- Bump to Geode v6
+
+# v1.1.5
+
+- Fixed crash when closing the upload popup while saving/loading your saves
+
+
 # v1.1.4
 
 - Added a custom authorization token field for private servers (by [SorkoPiko](https://github.com/SorkoPiko))

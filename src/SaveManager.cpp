@@ -3,7 +3,7 @@
 #include "BackupPopup.hpp"
 #include "helper.hpp"
 
-SaveFuture SaveManager::createSaveTask(std::string data, const bool isData, std::function<void(web::WebResponse)> callback) {
+SaveFuture SaveManager::createSaveTask(std::string data, const bool isData, std::shared_ptr<std::function<void(web::WebResponse)>> callback) {
     queueInMainThread([] {
         if (!Mod::get()->getSavedValue<bool>("hasRead2")) {
             BackupPopup::showNotice();
@@ -17,25 +17,26 @@ SaveFuture SaveManager::createSaveTask(std::string data, const bool isData, std:
     int accountID = *co_await instance.accountID.lock();
     std::string token = *co_await instance.argonToken.lock();
     std::string dataKey = isData ? "saveData" : "levelData";
+    int timeout = Mod::get()->getSettingValue<int>("timeout-seconds");
     web::WebRequest req = createBackupRequest()
-        .timeout(std::chrono::seconds(30))
-        .bodyJSON(matjson::makeObject({
-            {"accountId", accountID},
-            {dataKey, data},
-            {"argonToken", token}
-        }))
-        .onProgress([&instance](const web::WebProgress& progress) {
-            *instance.backupNotification->progress.blockingLock() = progress.uploadProgress().value_or(0.0f);
-        });
+                              .timeout(asp::Duration::fromSecs(timeout))
+                              .bodyJSON(matjson::makeObject({{"accountId", accountID},
+                                  {dataKey, data},
+                                  {"argonToken", token}}))
+                              .onProgress([&instance](const web::WebProgress& progress) {
+                                  *instance.backupNotification->progress.blockingLock() = progress.uploadProgress().value_or(0.0f);
+                              });
 
     const auto backupUrl = *co_await instance.backupURL.lock();
     auto resp = co_await req.post(backupUrl + "/save");
-    if (resp.ok()) *co_await instance.backupNotification->status.lock() = BackupStatus::Completed;
-    else *co_await instance.backupNotification->status.lock() = BackupStatus::Failed;
+    if (resp.ok())
+        *co_await instance.backupNotification->status.lock() = BackupStatus::Completed;
+    else
+        *co_await instance.backupNotification->status.lock() = BackupStatus::Failed;
 
     queueInMainThread([resp, callback] {
-        if (callback) {
-            callback(resp);
+        if (callback && *callback) {
+            (*callback)(resp);
         }
     });
     co_return;
@@ -55,15 +56,13 @@ SaveManager::SaveManager() {
             SaveItem item;
 
             co_await arc::select(
-                arc::selectee(dataRx.recv(), [&](auto res) { if (res) item = std::move(*res); else { pollData = false; } }, pollData),
-                arc::selectee(levelRx.recv(), [&](auto res) { if (res) item = std::move(*res); else { pollLevels = false; } }, pollLevels)
-            );
+                arc::selectee(dataRx.recv(), [&](auto res) { if (res) item = std::move(*res); else { pollData = false; } }, pollData), arc::selectee(levelRx.recv(), [&](auto res) { if (res) item = std::move(*res); else { pollLevels = false; } }, pollLevels));
 
             if (!pollData && !pollLevels) break;
 
             if (!item.dictionary) continue;
             const auto dict = std::move(item.dictionary);
-            const std::string saveData = ZipUtils::compressString(dict->saveRootSubDictToString(), false, 11);
+            const std::string saveData = ZipUtils::compressString(dict->saveRootSubDictToString(), false, 6, 11);
             co_await createSaveTask(saveData, item.data, std::move(item.callback));
         }
     });
@@ -79,7 +78,10 @@ void SaveManager::scheduleSaveData(std::function<void(web::WebResponse)> callbac
     gm->encodeDataTo(&*dict);
 
     if (saveDataChannel) {
-        (void) saveDataChannel->trySend({dict, std::move(callback), true});
+        auto cb = std::shared_ptr<std::function<void(web::WebResponse)>>(
+            new std::function<void(web::WebResponse)>(std::move(callback)),
+            [](std::function<void(web::WebResponse)>* p) { queueInMainThread([p] { delete p; }); });
+        (void)saveDataChannel->trySend({dict, std::move(cb), true});
     }
 }
 
@@ -102,6 +104,9 @@ void SaveManager::scheduleSaveLevels(std::function<void(web::WebResponse)> callb
     llm->encodeDataTo(&*dict);
 
     if (saveLevelsChannel) {
-        (void) saveLevelsChannel->trySend({dict, std::move(callback), false});
+        auto cb = std::shared_ptr<std::function<void(web::WebResponse)>>(
+            new std::function<void(web::WebResponse)>(std::move(callback)),
+            [](std::function<void(web::WebResponse)>* p) { queueInMainThread([p] { delete p; }); });
+        (void)saveLevelsChannel->trySend({dict, std::move(cb), false});
     }
 }

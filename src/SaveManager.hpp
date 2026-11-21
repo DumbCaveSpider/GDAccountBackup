@@ -10,7 +10,7 @@ using SaveFuture = arc::Future<>;
 
 struct SaveItem {
     std::shared_ptr<DS_Dictionary> dictionary;
-    std::function<void(web::WebResponse)> callback;
+    std::shared_ptr<std::function<void(web::WebResponse)>> callback;
     bool data;
 };
 
@@ -22,7 +22,7 @@ class SaveManager {
     arc::Mutex<std::string> backupURL;
     Ref<BackupNotification> backupNotification = nullptr;
 
-    static SaveFuture createSaveTask(std::string data, bool isData, std::function<void(web::WebResponse)> callback);
+    static SaveFuture createSaveTask(std::string data, bool isData, std::shared_ptr<std::function<void(web::WebResponse)>> callback);
 
     SaveManager();
 

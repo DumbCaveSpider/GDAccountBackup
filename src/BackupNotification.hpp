@@ -2,6 +2,7 @@
 #include <arc/sync/Mutex.hpp>
 #include <Geode/Prelude.hpp>
 #include <Geode/cocos/base_nodes/CCNode.h>
+#include <Geode/ui/Label.hpp>
 
 using namespace geode::prelude;
 
@@ -14,7 +15,7 @@ enum class BackupStatus {
 class BackupNotification : public CCNodeRGBA {
     NineSlice* background = nullptr;
     LoadingSpinner* spinner = nullptr;
-    CCLabelBMFont* label = nullptr;
+    geode::Label* label = nullptr;
     ProgressBar* progressBar = nullptr;
     CCSprite* failedSprite = nullptr;
     CCSprite* successSprite = nullptr;
